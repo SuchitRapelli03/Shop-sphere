@@ -45,21 +45,26 @@ export default function Cart() {
   }, [user, dispatch]);
 
   async function checkout() {
-    try {
-      const response = await api.post(
-        "/payments/create-checkout-session"
-      );
+  try {
+    const response = await api.post("/orders");
 
-      window.location.href = response.data.url;
-    } catch (error) {
-      console.error("CHECKOUT ERROR:", error);
+    alert(
+      response.data.message || "Order placed successfully!"
+    );
 
-      alert(
-        error.response?.data?.message ||
-          "Unable to start checkout."
-      );
-    }
+    const { data } = await api.get("/cart");
+
+    setLocal(data.cart);
+    dispatch(setCart(data.cart?.items || []));
+  } catch (error) {
+    console.error("CHECKOUT ERROR:", error);
+
+    alert(
+      error.response?.data?.message ||
+        "Unable to place order."
+    );
   }
+}
 
   if (!user) {
     return (
@@ -157,7 +162,7 @@ export default function Cart() {
             onClick={checkout}
             className="mt-6 w-full rounded-xl bg-indigo-600 p-4 font-bold text-white hover:bg-indigo-700"
           >
-            Pay with Stripe
+            Place Order
           </button>
         </>
       )}
