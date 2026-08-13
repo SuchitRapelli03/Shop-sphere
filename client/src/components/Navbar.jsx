@@ -14,61 +14,25 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="border-b bg-white shadow-sm">
+    <nav className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 
-        {/* ShopSphere Logo */}
-        <Link to="/" className="flex items-center gap-2">
-
-          {/* Shopping Bag Icon */}
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 shadow-md">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M6 8.5H18L19 21H5L6 8.5Z"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinejoin="round"
-              />
-
-              <path
-                d="M9 9V6.5C9 4.84 10.34 3.5 12 3.5C13.66 3.5 15 4.84 15 6.5V9"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-
-              <circle
-                cx="9"
-                cy="13"
-                r="1"
-                fill="white"
-              />
-
-              <circle
-                cx="15"
-                cy="13"
-                r="1"
-                fill="white"
-              />
-            </svg>
+        {/* Logo */}
+        <Link
+          to="/"
+          className="flex items-center gap-3"
+        >
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-xl text-white shadow-md">
+            🛍️
           </div>
 
-          {/* Brand Name */}
-          <span className="text-2xl font-black tracking-tight">
-            <span className="text-indigo-600">Shop</span>
-            <span className="text-purple-600">Sphere</span>
+          <span className="text-2xl font-black tracking-tight text-indigo-600">
+            Shop<span className="text-purple-600">Sphere</span>
           </span>
-
         </Link>
 
         {/* Navigation */}
-        <div className="flex items-center gap-5 text-sm font-medium">
+        <div className="flex items-center gap-6 text-sm font-semibold">
 
           <Link
             to="/"
@@ -91,6 +55,26 @@ export default function Navbar() {
             Products
           </Link>
 
+          {/* Customer links */}
+          {user?.role === "CUSTOMER" && (
+            <>
+              <Link
+                to="/orders"
+                className="transition hover:text-indigo-600"
+              >
+                Orders
+              </Link>
+
+              <Link
+                to="/cart"
+                className="transition hover:text-indigo-600"
+              >
+                Cart
+              </Link>
+            </>
+          )}
+
+          {/* Vendor */}
           {user?.role === "VENDOR" && (
             <Link
               to="/vendor"
@@ -100,6 +84,7 @@ export default function Navbar() {
             </Link>
           )}
 
+          {/* Admin */}
           {user?.role === "SUPER_ADMIN" && (
             <Link
               to="/admin"
@@ -109,31 +94,22 @@ export default function Navbar() {
             </Link>
           )}
 
-          {user?.role === "CUSTOMER" && (
-            <Link
-              to="/cart"
-              className="transition hover:text-indigo-600"
-            >
-              Cart
-            </Link>
-          )}
-
+          {/* Login / Logout */}
           {!user ? (
             <Link
               to="/login"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-white transition hover:bg-indigo-700"
+              className="rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-2.5 text-white shadow-md transition hover:shadow-lg"
             >
               Login
             </Link>
           ) : (
             <button
               onClick={signOut}
-              className="rounded-lg border px-4 py-2 transition hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 px-5 py-2.5 transition hover:bg-slate-50"
             >
               Logout
             </button>
           )}
-
         </div>
       </div>
     </nav>
