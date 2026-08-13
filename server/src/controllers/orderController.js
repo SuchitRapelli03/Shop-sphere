@@ -62,7 +62,7 @@ export async function createOrder(req, res) {
     vendorId: cart.items[0].productId.vendorId,
     items,
     total,
-    paymentStatus: "PAID",
+    paymentStatus: "PENDING",
     status: "PLACED"
   });
 
