@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api.js";
 import { setCart } from "../redux/slices/cartSlice.js";
 
 export default function Cart() {
   const [cart, setLocal] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const [error, setError] = useState("");
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
 
   useEffect(() => {
@@ -18,8 +21,6 @@ export default function Cart() {
         setError("");
 
         const response = await api.get("/cart");
-
-        console.log("CART RESPONSE:", response.data);
 
         const cartData = response.data.cart;
 
@@ -44,27 +45,141 @@ export default function Cart() {
     }
   }, [user, dispatch]);
 
-  async function checkout() {
-  try {
-    const response = await api.post("/orders");
+  async function loadRazorpayScript() {
+    if (window.Razorpay) {
+      return true;
+    }
 
-    alert(
-      response.data.message || "Order placed successfully!"
-    );
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
 
-    const { data } = await api.get("/cart");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
 
-    setLocal(data.cart);
-    dispatch(setCart(data.cart?.items || []));
-  } catch (error) {
-    console.error("CHECKOUT ERROR:", error);
-
-    alert(
-      error.response?.data?.message ||
-        "Unable to place order."
-    );
+      document.body.appendChild(script);
+    });
   }
-}
+
+  async function checkout() {
+    try {
+      setPaymentLoading(true);
+      setError("");
+
+      const scriptLoaded = await loadRazorpayScript();
+
+      if (!scriptLoaded) {
+        throw new Error(
+          "Unable to load Razorpay Checkout."
+        );
+      }
+
+      const { data } = await api.post(
+        "/payments/create-razorpay-order"
+      );
+
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        name: "ShopSphere",
+        description: "ShopSphere Order",
+        order_id: data.razorpayOrderId,
+        prefill: {
+          name: user?.name || "",
+          email: user?.email || ""
+        },
+        theme: {
+          color: "#4f46e5"
+        },
+
+        handler: async function (response) {
+          try {
+            setPaymentLoading(true);
+
+            const verificationResponse = await api.post(
+              "/payments/verify",
+              {
+                razorpay_order_id:
+                  response.razorpay_order_id,
+
+                razorpay_payment_id:
+                  response.razorpay_payment_id,
+
+                razorpay_signature:
+                  response.razorpay_signature
+              }
+            );
+
+            alert(
+              verificationResponse.data.message ||
+                "Payment successful!"
+            );
+
+            const cartResponse = await api.get("/cart");
+
+            setLocal(cartResponse.data.cart);
+            dispatch(
+              setCart(
+                cartResponse.data.cart?.items || []
+              )
+            );
+
+            navigate("/checkout/success");
+          } catch (error) {
+            console.error(
+              "PAYMENT VERIFICATION ERROR:",
+              error
+            );
+
+            alert(
+              error.response?.data?.message ||
+                "Payment verification failed."
+            );
+          } finally {
+            setPaymentLoading(false);
+          }
+        },
+
+        modal: {
+          ondismiss: function () {
+            setPaymentLoading(false);
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+
+      razorpay.on(
+        "payment.failed",
+        function (response) {
+          console.error(
+            "Razorpay payment failed:",
+            response.error
+          );
+
+          alert(
+            response.error?.description ||
+              "Payment failed. Please try again."
+          );
+
+          setPaymentLoading(false);
+        }
+      );
+
+      razorpay.open();
+    } catch (error) {
+      console.error("CHECKOUT ERROR:", error);
+
+      alert(
+        error.response?.data?.message ||
+          error.message ||
+          "Unable to start payment."
+      );
+
+      setPaymentLoading(false);
+    }
+  }
 
   if (!user) {
     return (
@@ -160,9 +275,12 @@ export default function Cart() {
 
           <button
             onClick={checkout}
-            className="mt-6 w-full rounded-xl bg-indigo-600 p-4 font-bold text-white hover:bg-indigo-700"
+            disabled={paymentLoading}
+            className="mt-6 w-full rounded-xl bg-indigo-600 p-4 font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Place Order
+            {paymentLoading
+              ? "Processing..."
+              : "Pay with Razorpay"}
           </button>
         </>
       )}

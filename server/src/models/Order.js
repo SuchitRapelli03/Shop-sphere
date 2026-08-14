@@ -20,7 +20,8 @@ const orderSchema = new mongoose.Schema(
       enum: ["PLACED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"],
       default: "PLACED"
     },
-    stripeSessionId: String
+    razorpayOrderId: String,
+    razorpayPaymentId: String
   },
   { timestamps: true }
 );
