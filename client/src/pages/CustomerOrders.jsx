@@ -5,6 +5,7 @@ export default function CustomerOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState(null);
   const [error, setError] = useState("");
 
   const loadOrders = useCallback(async (initial = false) => {
@@ -46,6 +47,45 @@ export default function CustomerOrders() {
     return () => clearInterval(interval);
   }, [loadOrders]);
 
+  // Cancel order
+  async function handleCancelOrder(orderId) {
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this order?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setCancellingOrderId(orderId);
+      setError("");
+
+      const { data } = await api.put(
+        `/orders/${orderId}/cancel`
+      );
+
+      // Update the cancelled order immediately
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order._id === orderId
+            ? data.order
+            : order
+        )
+      );
+
+    } catch (error) {
+      console.error("Order cancellation error:", error);
+
+      setError(
+        error.response?.data?.message ||
+          "Unable to cancel the order."
+      );
+    } finally {
+      setCancellingOrderId(null);
+    }
+  }
+
   // Status styling
   function getStatusStyle(status) {
     switch (status?.toUpperCase()) {
@@ -57,6 +97,9 @@ export default function CustomerOrders() {
 
       case "CONFIRMED":
         return "bg-indigo-100 text-indigo-700";
+
+      case "PROCESSING":
+        return "bg-purple-100 text-purple-700";
 
       case "CANCELLED":
         return "bg-red-100 text-red-700";
@@ -73,36 +116,58 @@ export default function CustomerOrders() {
   function getStatusIndex(status) {
     const statuses = [
       "PLACED",
-      "CONFIRMED",
+      "PROCESSING",
       "SHIPPED",
-      "DELIVERED",
+      "DELIVERED"
     ];
 
     return statuses.indexOf(status?.toUpperCase());
   }
 
   function renderTimeline(status) {
+    if (status?.toUpperCase() === "CANCELLED") {
+      return (
+        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-lg">
+              ✕
+            </div>
+
+            <div>
+              <p className="font-bold text-red-700">
+                Order Cancelled
+              </p>
+
+              <p className="mt-1 text-sm text-red-600">
+                This order has been cancelled.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     const statuses = [
       {
         name: "PLACED",
         label: "Order Placed",
-        icon: "🛒",
+        icon: "🛒"
       },
       {
-        name: "CONFIRMED",
-        label: "Confirmed",
-        icon: "✓",
+        name: "PROCESSING",
+        label: "Processing",
+        icon: "⚙️"
       },
       {
         name: "SHIPPED",
         label: "Shipped",
-        icon: "🚚",
+        icon: "🚚"
       },
       {
         name: "DELIVERED",
         label: "Delivered",
-        icon: "📦",
-      },
+        icon: "📦"
+      }
     ];
 
     const currentIndex = getStatusIndex(status);
@@ -114,7 +179,6 @@ export default function CustomerOrders() {
         </h3>
 
         <div className="relative">
-
           {statuses.map((item, index) => {
             const completed =
               currentIndex >= index;
@@ -127,7 +191,6 @@ export default function CustomerOrders() {
                 key={item.name}
                 className="relative flex gap-4 pb-7 last:pb-0"
               >
-
                 {/* Connecting line */}
                 {index < statuses.length - 1 && (
                   <div
@@ -187,7 +250,6 @@ export default function CustomerOrders() {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-7xl px-6 py-12">
-
           <h1 className="text-4xl font-black">
             My Orders
           </h1>
@@ -195,7 +257,6 @@ export default function CustomerOrders() {
           <p className="mt-3 text-slate-600">
             Loading your orders...
           </p>
-
         </div>
       </main>
     );
@@ -206,7 +267,6 @@ export default function CustomerOrders() {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-7xl px-6 py-12">
-
           <h1 className="text-4xl font-black">
             My Orders
           </h1>
@@ -221,7 +281,6 @@ export default function CustomerOrders() {
           >
             Try Again
           </button>
-
         </div>
       </main>
     );
@@ -229,12 +288,10 @@ export default function CustomerOrders() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-
       <div className="mx-auto max-w-7xl px-6 py-12">
 
         {/* Header */}
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
-
           <div>
             <p className="font-semibold text-indigo-600">
               ShopSphere
@@ -254,9 +311,10 @@ export default function CustomerOrders() {
             disabled={refreshing}
             className="rounded-xl border bg-white px-5 py-3 font-semibold shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
           >
-            {refreshing ? "Updating..." : "↻ Refresh"}
+            {refreshing
+              ? "Updating..."
+              : "↻ Refresh"}
           </button>
-
         </div>
 
         {/* Auto update */}
@@ -264,10 +322,16 @@ export default function CustomerOrders() {
           🔄 Order status automatically updates every 15 seconds.
         </div>
 
+        {/* Error message */}
+        {error && (
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-600">
+            {error}
+          </div>
+        )}
+
         {/* Orders */}
         {orders.length === 0 ? (
           <div className="mt-8 rounded-3xl border bg-white p-12 text-center shadow-sm">
-
             <div className="text-6xl">
               🛍️
             </div>
@@ -279,122 +343,137 @@ export default function CustomerOrders() {
             <p className="mt-2 text-slate-500">
               Your orders will appear here after you complete a purchase.
             </p>
-
           </div>
         ) : (
           <div className="mt-8 space-y-6">
+            {orders.map((order) => {
 
-            {orders.map((order) => (
+              const orderStatus =
+                order.status?.toUpperCase();
 
-              <div
-                key={order._id}
-                className="overflow-hidden rounded-3xl border bg-white shadow-sm"
-              >
+              const canCancel =
+                orderStatus === "PLACED" ||
+                orderStatus === "PROCESSING";
 
-                {/* Order header */}
-                <div className="flex flex-col justify-between gap-5 border-b p-6 md:flex-row md:items-center">
+              const isCancelling =
+                cancellingOrderId === order._id;
 
-                  <div>
-                    <p className="text-sm text-slate-500">
-                      Order ID
-                    </p>
+              return (
+                <div
+                  key={order._id}
+                  className="overflow-hidden rounded-3xl border bg-white shadow-sm"
+                >
 
-                    <p className="mt-1 font-bold">
-                      #{order._id.slice(-8).toUpperCase()}
-                    </p>
-                  </div>
+                  {/* Order header */}
+                  <div className="flex flex-col justify-between gap-5 border-b p-6 md:flex-row md:items-center">
 
-                  <div>
-                    <p className="text-sm text-slate-500">
-                      Status
-                    </p>
+                    <div>
+                      <p className="text-sm text-slate-500">
+                        Order ID
+                      </p>
 
-                    <span
-                      className={`mt-1 inline-flex rounded-full px-4 py-1.5 text-sm font-bold ${getStatusStyle(
-                        order.status
-                      )}`}
-                    >
-                      {order.status || "UNKNOWN"}
-                    </span>
-                  </div>
+                      <p className="mt-1 font-bold">
+                        #{order._id.slice(-8).toUpperCase()}
+                      </p>
+                    </div>
 
-                  <div>
-                    <p className="text-sm text-slate-500">
-                      Payment
-                    </p>
+                    <div>
+                      <p className="text-sm text-slate-500">
+                        Status
+                      </p>
 
-                    <p className="mt-1 font-bold">
-                      {order.paymentStatus}
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* Tracking */}
-                <div className="p-6">
-                  {renderTimeline(order.status)}
-                </div>
-
-                {/* Items */}
-                <div className="border-t p-6">
-
-                  <h3 className="text-lg font-bold">
-                    Items
-                  </h3>
-
-                  <div className="mt-4 space-y-4">
-
-                    {order.items?.map((item) => (
-
-                      <div
-                        key={item.productId}
-                        className="flex items-center justify-between rounded-xl bg-slate-50 p-4"
+                      <span
+                        className={`mt-1 inline-flex rounded-full px-4 py-1.5 text-sm font-bold ${getStatusStyle(
+                          order.status
+                        )}`}
                       >
+                        {order.status || "UNKNOWN"}
+                      </span>
+                    </div>
 
-                        <div>
-                          <p className="font-semibold">
-                            {item.name}
-                          </p>
+                    <div>
+                      <p className="text-sm text-slate-500">
+                        Payment
+                      </p>
 
-                          <p className="mt-1 text-sm text-slate-500">
-                            Quantity: {item.quantity}
+                      <p className="mt-1 font-bold">
+                        {order.paymentStatus}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* Tracking */}
+                  <div className="p-6">
+                    {renderTimeline(order.status)}
+                  </div>
+
+                  {/* Items */}
+                  <div className="border-t p-6">
+                    <h3 className="text-lg font-bold">
+                      Items
+                    </h3>
+
+                    <div className="mt-4 space-y-4">
+                      {order.items?.map((item) => (
+                        <div
+                          key={item.productId}
+                          className="flex items-center justify-between rounded-xl bg-slate-50 p-4"
+                        >
+                          <div>
+                            <p className="font-semibold">
+                              {item.name}
+                            </p>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                              Quantity: {item.quantity}
+                            </p>
+                          </div>
+
+                          <p className="font-bold">
+                            ₹{item.price * item.quantity}
                           </p>
                         </div>
+                      ))}
+                    </div>
+                  </div>
 
-                        <p className="font-bold">
-                          ₹{item.price * item.quantity}
-                        </p>
+                  {/* Total + Cancel */}
+                  <div className="flex flex-col gap-4 border-t bg-slate-50 p-6 sm:flex-row sm:items-center sm:justify-between">
 
-                      </div>
+                    <div>
+                      <span className="text-lg font-bold">
+                        Total
+                      </span>
 
-                    ))}
+                      <p className="text-2xl font-black text-indigo-600">
+                        ₹{order.total}
+                      </p>
+                    </div>
+
+                    {canCancel && (
+                      <button
+                        onClick={() =>
+                          handleCancelOrder(order._id)
+                        }
+                        disabled={isCancelling}
+                        className="rounded-xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isCancelling
+                          ? "Cancelling..."
+                          : "Cancel Order"}
+                      </button>
+                    )}
 
                   </div>
 
                 </div>
-
-                {/* Total */}
-                <div className="flex items-center justify-between border-t bg-slate-50 p-6">
-
-                  <span className="text-lg font-bold">
-                    Total
-                  </span>
-
-                  <span className="text-2xl font-black text-indigo-600">
-                    ₹{order.total}
-                  </span>
-
-                </div>
-
-              </div>
-
-            ))}
-
+              );
+            })}
           </div>
         )}
 
       </div>
-
     </main>
   );
 }
