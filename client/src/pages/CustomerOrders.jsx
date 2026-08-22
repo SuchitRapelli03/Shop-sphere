@@ -302,6 +302,16 @@ export default function CustomerOrders() {
                     <p className="mt-1 font-bold">
                       #{order._id.slice(-8).toUpperCase()}
                     </p>
+
+                    <p className="mt-2 text-sm text-slate-500">
+                        Placed on{" "}
+                        {order.createdAt
+                          ? new Date(order.createdAt).toLocaleString("en-IN", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })
+                          : "Date unavailable"}
+                    </p>
                   </div>
 
                   <div>
