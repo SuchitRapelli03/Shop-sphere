@@ -481,6 +481,16 @@ export default function VendorDashboard() {
                       <p className="text-sm text-slate-500">
                         Order #{order._id.slice(-8)}
                       </p>
+                        
+                      <p className="mt-1 text-sm text-slate-500">
+                        Placed on{" "}
+                        {order.createdAt
+                          ? new Date(order.createdAt).toLocaleString("en-IN", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })
+                          : "Date unavailable"}
+                      </p>
 
                       <h3 className="mt-1 text-xl font-bold">
                         ₹{order.total}
