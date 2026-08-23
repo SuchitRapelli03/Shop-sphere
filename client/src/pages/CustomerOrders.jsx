@@ -73,7 +73,7 @@ export default function CustomerOrders() {
   function getStatusIndex(status) {
     const statuses = [
       "PLACED",
-      "CONFIRMED",
+      "PROCESSING",
       "SHIPPED",
       "DELIVERED",
     ];
@@ -89,10 +89,11 @@ export default function CustomerOrders() {
         icon: "🛒",
       },
       {
-        name: "CONFIRMED",
-        label: "Confirmed",
-        icon: "✓",
+        name: "PROCESSING",
+        label: "Processing",
+        icon: "⚙️",
       },
+      
       {
         name: "SHIPPED",
         label: "Shipped",
