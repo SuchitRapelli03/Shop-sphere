@@ -438,158 +438,233 @@ export default function VendorDashboard() {
         </section>
 
         {/* ----------------------------- */}
-        {/* CUSTOMER ORDERS */}
-        {/* ----------------------------- */}
+{/* CUSTOMER ORDERS */}
+{/* ----------------------------- */}
 
-        <section className="mt-10">
-          <div className="flex items-center justify-between">
+<section className="mt-10">
+  <div className="flex items-center justify-between">
+    <div>
+      <h2 className="text-2xl font-black">
+        Customer Orders
+      </h2>
+
+      <p className="mt-1 text-slate-600">
+        Manage orders placed in your store.
+      </p>
+    </div>
+
+    <span className="rounded-full bg-indigo-100 px-4 py-2 text-sm font-bold text-indigo-700">
+      {orders.length} Orders
+    </span>
+  </div>
+
+  {orders.length === 0 ? (
+    <div className="mt-6 rounded-2xl border bg-white p-8 text-center">
+      <h3 className="text-xl font-bold">
+        No orders yet
+      </h3>
+
+      <p className="mt-2 text-slate-600">
+        Customer orders will appear here.
+      </p>
+    </div>
+  ) : (
+    <div className="mt-6 space-y-5">
+      {orders.map((order) => (
+        <div
+          key={order._id}
+          className="rounded-2xl border bg-white p-6 shadow-sm"
+        >
+
+          {/* Order Header */}
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+
             <div>
-              <h2 className="text-2xl font-black">
-                Customer Orders
-              </h2>
+              <p className="text-sm text-slate-500">
+                Order ID
+              </p>
 
-              <p className="mt-1 text-slate-600">
-                Manage orders placed in your store.
+              <p className="mt-1 text-lg font-black">
+                #{order._id.slice(-8).toUpperCase()}
+              </p>
+
+              <p className="mt-2 text-sm text-slate-500">
+                🕐{" "}
+                {order.createdAt
+                  ? new Date(order.createdAt).toLocaleString(
+                      "en-IN",
+                      {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }
+                    )
+                  : "Date unavailable"}
+              </p>
+
+              <p className="mt-3 text-2xl font-black text-slate-900">
+                ₹{order.total}
               </p>
             </div>
 
-            <span className="rounded-full bg-indigo-100 px-4 py-2 text-sm font-bold text-indigo-700">
-              {orders.length} Orders
-            </span>
+            {/* Status */}
+            <div>
+              <p className="text-sm text-slate-500">
+                Current Status
+              </p>
+
+              <span className="mt-1 inline-block rounded-full bg-indigo-100 px-4 py-2 text-sm font-bold text-indigo-700">
+                {order.status}
+              </span>
+            </div>
+
+            {/* Payment */}
+            <div>
+              <p className="text-sm text-slate-500">
+                💳 Payment
+              </p>
+
+              <span
+                className={`mt-1 inline-block rounded-full px-4 py-2 text-sm font-bold ${
+                  order.paymentStatus === "PAID"
+                    ? "bg-green-100 text-green-700"
+                    : order.paymentStatus === "FAILED"
+                    ? "bg-red-100 text-red-700"
+                    : "bg-yellow-100 text-yellow-700"
+                }`}
+              >
+                {order.paymentStatus}
+              </span>
+            </div>
+
           </div>
 
-          {orders.length === 0 ? (
-            <div className="mt-6 rounded-2xl border bg-white p-8 text-center">
-              <h3 className="text-xl font-bold">
-                No orders yet
-              </h3>
+          {/* Delivery Details */}
+          <div className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-5">
 
-              <p className="mt-2 text-slate-600">
-                Customer orders will appear here.
+            <h3 className="text-lg font-black text-slate-900">
+              📦 Delivery Details
+            </h3>
+
+            {order.shippingAddress ? (
+              <div className="mt-4 space-y-2 text-sm text-slate-700">
+
+                <p className="font-bold text-slate-900">
+                  {order.shippingAddress.fullName}
+                </p>
+
+                <p>
+                  📞 {order.shippingAddress.phone}
+                </p>
+
+                <p>
+                  {order.shippingAddress.addressLine}
+                </p>
+
+                <p>
+                  {order.shippingAddress.city},{" "}
+                  {order.shippingAddress.state} -{" "}
+                  {order.shippingAddress.pincode}
+                </p>
+
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-slate-500">
+                Delivery details unavailable.
               </p>
-            </div>
-          ) : (
-            <div className="mt-6 space-y-5">
-              {orders.map((order) => (
+            )}
+
+          </div>
+
+          {/* Items */}
+          <div className="mt-6 border-t pt-5">
+
+            <h4 className="text-lg font-bold">
+              Items
+            </h4>
+
+            <div className="mt-3 space-y-2">
+              {order.items?.map((item) => (
                 <div
-                  key={order._id}
-                  className="rounded-2xl border bg-white p-6 shadow-sm"
+                  key={item.productId}
+                  className="flex items-center justify-between rounded-xl bg-slate-50 p-4"
                 >
-                  <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                  <div>
+                    <p className="font-semibold">
+                      {item.name}
+                    </p>
 
-                    <div>
-                      <p className="text-sm text-slate-500">
-                        Order #{order._id.slice(-8)}
-                      </p>
-                        
-                      <p className="mt-1 text-sm text-slate-500">
-                        Placed on{" "}
-                        {order.createdAt
-                          ? new Date(order.createdAt).toLocaleString("en-IN", {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            })
-                          : "Date unavailable"}
-                      </p>
-
-                      <h3 className="mt-1 text-xl font-bold">
-                        ₹{order.total}
-                      </h3>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-slate-500">
-                        Payment
-                      </p>
-
-                      <p className="font-bold">
-                        {order.paymentStatus}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-slate-500">
-                        Current Status
-                      </p>
-
-                      <span className="mt-1 inline-block rounded-full bg-indigo-100 px-3 py-1 text-sm font-bold text-indigo-700">
-                        {order.status}
-                      </span>
-                    </div>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Quantity: {item.quantity}
+                    </p>
                   </div>
 
-                  {/* Items */}
-                  <div className="mt-5 border-t pt-5">
-                    <h4 className="font-bold">
-                      Items
-                    </h4>
-
-                    <div className="mt-3 space-y-2">
-                      {order.items?.map((item) => (
-                        <div
-                          key={item.productId}
-                          className="flex justify-between rounded-lg bg-slate-50 p-3"
-                        >
-                          <div>
-                            <p className="font-semibold">
-                              {item.name}
-                            </p>
-
-                            <p className="text-sm text-slate-500">
-                              Quantity: {item.quantity}
-                            </p>
-                          </div>
-
-                          <p className="font-semibold">
-                            ₹{item.price * item.quantity}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Update status */}
-                  <div className="mt-5 border-t pt-5">
-                    <label className="text-sm font-semibold text-slate-600">
-                      Update Order Status
-                    </label>
-
-                    <select
-                      value={order.status}
-                      onChange={(e) =>
-                        updateOrderStatus(
-                          order._id,
-                          e.target.value
-                        )
-                      }
-                      className="mt-2 w-full rounded-xl border bg-white p-3 md:w-72"
-                    >
-                      <option value="PLACED">
-                        Placed
-                      </option>
-
-                      <option value="PROCESSING">
-                        Processing
-                      </option>
-
-                      <option value="SHIPPED">
-                        Shipped
-                      </option>
-
-                      <option value="DELIVERED">
-                        Delivered
-                      </option>
-
-                      <option value="CANCELLED">
-                        Cancelled
-                      </option>
-                    </select>
-                  </div>
+                  <p className="font-bold">
+                    ₹{item.price * item.quantity}
+                  </p>
                 </div>
               ))}
             </div>
-          )}
-        </section>
+
+          </div>
+
+          {/* Total */}
+          <div className="mt-5 flex items-center justify-between border-t pt-5">
+
+            <span className="text-lg font-bold">
+              Total
+            </span>
+
+            <span className="text-2xl font-black text-indigo-600">
+              ₹{order.total}
+            </span>
+
+          </div>
+
+          {/* Update Status */}
+          <div className="mt-5 border-t pt-5">
+
+            <label className="text-sm font-semibold text-slate-600">
+              Update Order Status
+            </label>
+
+            <select
+              value={order.status}
+              onChange={(e) =>
+                updateOrderStatus(
+                  order._id,
+                  e.target.value
+                )
+              }
+              className="mt-2 w-full rounded-xl border bg-white p-3 md:w-72"
+            >
+              <option value="PLACED">
+                Placed
+              </option>
+
+              <option value="PROCESSING">
+                Processing
+              </option>
+
+              <option value="SHIPPED">
+                Shipped
+              </option>
+
+              <option value="DELIVERED">
+                Delivered
+              </option>
+
+              <option value="CANCELLED">
+                Cancelled
+              </option>
+            </select>
+
+          </div>
+
+        </div>
+      ))}
+    </div>
+  )}
+</section>
 
         {/* ----------------------------- */}
         {/* CREATE STORE + PRODUCT */}
