@@ -68,7 +68,8 @@ export async function verifyRazorpayPayment(req, res) {
     const {
       razorpay_order_id,
       razorpay_payment_id,
-      razorpay_signature
+      razorpay_signature,
+      shippingAddress
     } = req.body;
 
     if (
@@ -78,6 +79,20 @@ export async function verifyRazorpayPayment(req, res) {
     ) {
       return res.status(400).json({
         message: "Missing Razorpay payment details"
+      });
+    }
+
+    if (
+      !shippingAddress ||
+      !shippingAddress.fullName ||
+      !shippingAddress.phone ||
+      !shippingAddress.addressLine ||
+      !shippingAddress.city ||
+      !shippingAddress.state ||
+      !shippingAddress.pincode
+    ) {
+      return res.status(400).json({
+        message: "Complete shipping address is required"
       });
     }
 
@@ -158,6 +173,14 @@ export async function verifyRazorpayPayment(req, res) {
       vendorId: cart.items[0].productId.vendorId,
       items,
       total,
+      shippingAddress: {
+        fullName: shippingAddress.fullName.trim(),
+        phone: shippingAddress.phone.trim(),
+        addressLine: shippingAddress.addressLine.trim(),
+        city: shippingAddress.city.trim(),
+        state: shippingAddress.state.trim(),
+        pincode: shippingAddress.pincode.trim()
+      },
       paymentStatus: "PAID",
       status: "PLACED",
       razorpayOrderId: razorpay_order_id,
