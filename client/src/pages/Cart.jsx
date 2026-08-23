@@ -10,6 +10,15 @@ export default function Cart() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [shippingAddress, setShippingAddress] = useState({
+    fullName: "",
+    phone: "",
+    addressLine: "",
+    city: "",
+    state: "",
+    pincode: "",
+  });
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
@@ -45,6 +54,47 @@ export default function Cart() {
     }
   }, [user, dispatch]);
 
+  function handleAddressChange(e) {
+    const { name, value } = e.target;
+
+    setShippingAddress((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  }
+
+  function validateShippingAddress() {
+    const {
+      fullName,
+      phone,
+      addressLine,
+      city,
+      state,
+      pincode,
+    } = shippingAddress;
+
+    if (
+      !fullName.trim() ||
+      !phone.trim() ||
+      !addressLine.trim() ||
+      !city.trim() ||
+      !state.trim() ||
+      !pincode.trim()
+    ) {
+      return "Please complete all delivery details.";
+    }
+
+    if (!/^[6-9]\d{9}$/.test(phone.trim())) {
+      return "Please enter a valid 10-digit Indian phone number.";
+    }
+
+    if (!/^\d{6}$/.test(pincode.trim())) {
+      return "Please enter a valid 6-digit pincode.";
+    }
+
+    return "";
+  }
+
   async function loadRazorpayScript() {
     if (window.Razorpay) {
       return true;
@@ -53,7 +103,9 @@ export default function Cart() {
     return new Promise((resolve) => {
       const script = document.createElement("script");
 
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.src =
+        "https://checkout.razorpay.com/v1/checkout.js";
+
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
 
@@ -62,6 +114,13 @@ export default function Cart() {
   }
 
   async function checkout() {
+    const addressError = validateShippingAddress();
+
+    if (addressError) {
+      alert(addressError);
+      return;
+    }
+
     try {
       setPaymentLoading(true);
       setError("");
@@ -85,21 +144,26 @@ export default function Cart() {
         name: "ShopSphere",
         description: "ShopSphere Order",
         order_id: data.razorpayOrderId,
+
         prefill: {
-          name: user?.name || "",
-          email: user?.email || ""
+          name:
+            shippingAddress.fullName ||
+            user?.name ||
+            "",
+          email: user?.email || "",
+          contact: shippingAddress.phone || "",
         },
+
         theme: {
-          color: "#4f46e5"
+          color: "#4f46e5",
         },
 
         handler: async function (response) {
           try {
             setPaymentLoading(true);
 
-            const verificationResponse = await api.post(
-              "/payments/verify",
-              {
+            const verificationResponse =
+              await api.post("/payments/verify", {
                 razorpay_order_id:
                   response.razorpay_order_id,
 
@@ -107,18 +171,21 @@ export default function Cart() {
                   response.razorpay_payment_id,
 
                 razorpay_signature:
-                  response.razorpay_signature
-              }
-            );
+                  response.razorpay_signature,
+
+                shippingAddress,
+              });
 
             alert(
               verificationResponse.data.message ||
                 "Payment successful!"
             );
 
-            const cartResponse = await api.get("/cart");
+            const cartResponse =
+              await api.get("/cart");
 
             setLocal(cartResponse.data.cart);
+
             dispatch(
               setCart(
                 cartResponse.data.cart?.items || []
@@ -144,11 +211,12 @@ export default function Cart() {
         modal: {
           ondismiss: function () {
             setPaymentLoading(false);
-          }
-        }
+          },
+        },
       };
 
-      const razorpay = new window.Razorpay(options);
+      const razorpay =
+        new window.Razorpay(options);
 
       razorpay.on(
         "payment.failed",
@@ -243,45 +311,190 @@ export default function Cart() {
         </div>
       ) : (
         <>
-          <div className="mt-8 space-y-4">
-            {items.map((item) => (
-              <div
-                key={item.productId?._id}
-                className="flex items-center justify-between rounded-xl border bg-white p-4"
-              >
-                <div>
-                  <h2 className="font-bold">
-                    {item.productId?.name}
-                  </h2>
+          {/* CART ITEMS */}
 
-                  <p className="text-sm text-slate-500">
-                    Quantity: {item.quantity}
-                  </p>
+          <section className="mt-8">
+            <h2 className="text-2xl font-black">
+              Cart Items
+            </h2>
+
+            <div className="mt-4 space-y-4">
+              {items.map((item) => (
+                <div
+                  key={item.productId?._id}
+                  className="flex items-center justify-between rounded-xl border bg-white p-4"
+                >
+                  <div>
+                    <h3 className="font-bold">
+                      {item.productId?.name}
+                    </h3>
+
+                    <p className="text-sm text-slate-500">
+                      Quantity: {item.quantity}
+                    </p>
+                  </div>
+
+                  <span className="font-bold">
+                    ₹
+                    {(item.productId?.price || 0) *
+                      item.quantity}
+                  </span>
                 </div>
+              ))}
+            </div>
+          </section>
 
-                <span className="font-bold">
-                  ₹
-                  {(item.productId?.price || 0) *
-                    item.quantity}
-                </span>
+          {/* DELIVERY DETAILS */}
+
+          <section className="mt-10 rounded-2xl border bg-white p-6 shadow-sm">
+            <div>
+              <p className="font-semibold text-indigo-600">
+                Delivery
+              </p>
+
+              <h2 className="mt-1 text-2xl font-black">
+                Delivery Details
+              </h2>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Enter the details where you want your order
+                delivered.
+              </p>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {/* FULL NAME */}
+
+              <div className="md:col-span-2">
+                <label className="text-sm font-semibold text-slate-700">
+                  Full Name
+                </label>
+
+                <input
+                  name="fullName"
+                  type="text"
+                  value={shippingAddress.fullName}
+                  onChange={handleAddressChange}
+                  placeholder="Enter recipient name"
+                  className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
               </div>
-            ))}
-          </div>
 
-          <div className="mt-8 flex items-center justify-between text-2xl font-black">
-            <span>Total</span>
-            <span>₹{total}</span>
-          </div>
+              {/* PHONE */}
 
-          <button
-            onClick={checkout}
-            disabled={paymentLoading}
-            className="mt-6 w-full rounded-xl bg-indigo-600 p-4 font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {paymentLoading
-              ? "Processing..."
-              : "Pay with Razorpay"}
-          </button>
+              <div>
+                <label className="text-sm font-semibold text-slate-700">
+                  Phone Number
+                </label>
+
+                <input
+                  name="phone"
+                  type="tel"
+                  maxLength="10"
+                  value={shippingAddress.phone}
+                  onChange={handleAddressChange}
+                  placeholder="10-digit mobile number"
+                  className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+
+              {/* PINCODE */}
+
+              <div>
+                <label className="text-sm font-semibold text-slate-700">
+                  Pincode
+                </label>
+
+                <input
+                  name="pincode"
+                  type="text"
+                  maxLength="6"
+                  value={shippingAddress.pincode}
+                  onChange={handleAddressChange}
+                  placeholder="6-digit pincode"
+                  className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+
+              {/* ADDRESS */}
+
+              <div className="md:col-span-2">
+                <label className="text-sm font-semibold text-slate-700">
+                  Address
+                </label>
+
+                <textarea
+                  name="addressLine"
+                  rows="3"
+                  value={shippingAddress.addressLine}
+                  onChange={handleAddressChange}
+                  placeholder="House number, street, area, landmark..."
+                  className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+
+              {/* CITY */}
+
+              <div>
+                <label className="text-sm font-semibold text-slate-700">
+                  City
+                </label>
+
+                <input
+                  name="city"
+                  type="text"
+                  value={shippingAddress.city}
+                  onChange={handleAddressChange}
+                  placeholder="City"
+                  className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+
+              {/* STATE */}
+
+              <div>
+                <label className="text-sm font-semibold text-slate-700">
+                  State
+                </label>
+
+                <input
+                  name="state"
+                  type="text"
+                  value={shippingAddress.state}
+                  onChange={handleAddressChange}
+                  placeholder="State"
+                  className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* TOTAL + PAYMENT */}
+
+          <section className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between text-2xl font-black">
+              <span>Total</span>
+
+              <span className="text-indigo-600">
+                ₹{total}
+              </span>
+            </div>
+
+            <button
+              onClick={checkout}
+              disabled={paymentLoading}
+              className="mt-6 w-full rounded-xl bg-indigo-600 p-4 font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {paymentLoading
+                ? "Processing..."
+                : "Pay with Razorpay"}
+            </button>
+
+            <p className="mt-3 text-center text-xs text-slate-500">
+              Your delivery details will be securely attached
+              to this order.
+            </p>
+          </section>
         </>
       )}
     </main>
