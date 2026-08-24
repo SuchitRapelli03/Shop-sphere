@@ -31,7 +31,13 @@ const orderSchema = new mongoose.Schema(
       default: "PLACED"
     },
     razorpayOrderId: String,
-    razorpayPaymentId: String
+    razorpayPaymentId: String,
+
+    stripeSessionId: {
+      type: String,
+      unique: true,
+      sparse: true
+}
   },
   { timestamps: true }
 );
