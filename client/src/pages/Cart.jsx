@@ -8,6 +8,7 @@ export default function Cart() {
   const [cart, setLocal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [removingProductId, setRemovingProductId] = useState(null);
   const [error, setError] = useState("");
 
   const [shippingAddress, setShippingAddress] = useState({
@@ -93,6 +94,42 @@ export default function Cart() {
     }
 
     return "";
+  }
+
+  async function removeItem(productId) {
+    const confirmed = window.confirm(
+      "Are you sure you want to remove this product from your cart?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setRemovingProductId(productId);
+      setError("");
+
+      const response = await api.delete(
+        `/cart/items/${productId}`
+      );
+
+      const updatedCart = response.data.cart;
+
+      setLocal(updatedCart);
+
+      dispatch(
+        setCart(updatedCart?.items || [])
+      );
+    } catch (error) {
+      console.error("REMOVE CART ITEM ERROR:", error);
+
+      setError(
+        error.response?.data?.message ||
+          "Unable to remove product from cart."
+      );
+    } finally {
+      setRemovingProductId(null);
+    }
   }
 
   async function loadRazorpayScript() {
@@ -271,7 +308,7 @@ export default function Cart() {
     );
   }
 
-  if (error) {
+  if (error && !cart?.items?.length) {
     return (
       <main className="mx-auto max-w-4xl px-6 py-16">
         <div className="rounded-2xl border bg-white p-8 text-center">
@@ -299,6 +336,12 @@ export default function Cart() {
         Your Cart
       </h1>
 
+      {error && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+          {error}
+        </div>
+      )}
+
       {items.length === 0 ? (
         <div className="mt-8 rounded-2xl border bg-white p-8 text-center">
           <h2 className="text-xl font-bold">
@@ -312,40 +355,68 @@ export default function Cart() {
       ) : (
         <>
           {/* CART ITEMS */}
-
           <section className="mt-8">
             <h2 className="text-2xl font-black">
               Cart Items
             </h2>
 
             <div className="mt-4 space-y-4">
-              {items.map((item) => (
-                <div
-                  key={item.productId?._id}
-                  className="flex items-center justify-between rounded-xl border bg-white p-4"
-                >
-                  <div>
-                    <h3 className="font-bold">
-                      {item.productId?.name}
-                    </h3>
+              {items.map((item) => {
+                const productId =
+                  item.productId?._id;
 
-                    <p className="text-sm text-slate-500">
-                      Quantity: {item.quantity}
-                    </p>
+                return (
+                  <div
+                    key={productId}
+                    className="flex flex-col gap-4 rounded-xl border bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex-1">
+                      <h3 className="font-bold">
+                        {item.productId?.name}
+                      </h3>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        Quantity: {item.quantity}
+                      </p>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        Price: ₹
+                        {item.productId?.price || 0}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <span className="font-bold">
+                        ₹
+                        {(item.productId?.price || 0) *
+                          item.quantity}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeItem(productId)
+                        }
+                        disabled={
+                          removingProductId ===
+                          productId ||
+                          paymentLoading
+                        }
+                        className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {removingProductId ===
+                        productId
+                          ? "Removing..."
+                          : "Remove"}
+                      </button>
+                    </div>
                   </div>
-
-                  <span className="font-bold">
-                    ₹
-                    {(item.productId?.price || 0) *
-                      item.quantity}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
 
           {/* DELIVERY DETAILS */}
-
           <section className="mt-10 rounded-2xl border bg-white p-6 shadow-sm">
             <div>
               <p className="font-semibold text-indigo-600">
@@ -364,7 +435,6 @@ export default function Cart() {
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               {/* FULL NAME */}
-
               <div className="md:col-span-2">
                 <label className="text-sm font-semibold text-slate-700">
                   Full Name
@@ -381,7 +451,6 @@ export default function Cart() {
               </div>
 
               {/* PHONE */}
-
               <div>
                 <label className="text-sm font-semibold text-slate-700">
                   Phone Number
@@ -399,7 +468,6 @@ export default function Cart() {
               </div>
 
               {/* PINCODE */}
-
               <div>
                 <label className="text-sm font-semibold text-slate-700">
                   Pincode
@@ -417,7 +485,6 @@ export default function Cart() {
               </div>
 
               {/* ADDRESS */}
-
               <div className="md:col-span-2">
                 <label className="text-sm font-semibold text-slate-700">
                   Address
@@ -434,7 +501,6 @@ export default function Cart() {
               </div>
 
               {/* CITY */}
-
               <div>
                 <label className="text-sm font-semibold text-slate-700">
                   City
@@ -451,7 +517,6 @@ export default function Cart() {
               </div>
 
               {/* STATE */}
-
               <div>
                 <label className="text-sm font-semibold text-slate-700">
                   State
@@ -470,7 +535,6 @@ export default function Cart() {
           </section>
 
           {/* TOTAL + PAYMENT */}
-
           <section className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between text-2xl font-black">
               <span>Total</span>
