@@ -156,8 +156,13 @@ export default function CustomerOrders() {
       {
         name: "PROCESSING",
         label: "Processing",
+<<<<<<< HEAD
         icon: "⚙️"
+=======
+        icon: "⚙️",
+>>>>>>> abhay
       },
+      
       {
         name: "SHIPPED",
         label: "Shipped",
@@ -364,8 +369,25 @@ export default function CustomerOrders() {
                   className="overflow-hidden rounded-3xl border bg-white shadow-sm"
                 >
 
+<<<<<<< HEAD
                   {/* Order header */}
                   <div className="flex flex-col justify-between gap-5 border-b p-6 md:flex-row md:items-center">
+=======
+                    <p className="mt-1 font-bold">
+                      #{order._id.slice(-8).toUpperCase()}
+                    </p>
+
+                    <p className="mt-2 text-sm text-slate-500">
+                        Placed on{" "}
+                        {order.createdAt
+                          ? new Date(order.createdAt).toLocaleString("en-IN", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })
+                          : "Date unavailable"}
+                    </p>
+                  </div>
+>>>>>>> abhay
 
                     <div>
                       <p className="text-sm text-slate-500">
