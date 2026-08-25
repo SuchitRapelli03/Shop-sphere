@@ -128,11 +128,94 @@ export async function updateOrderStatus(req, res) {
     });
   }
 
-  order.status = req.body.status;
+  const newStatus = req.body.status;
+
+  const allowedStatuses = [
+    "PLACED",
+    "PROCESSING",
+    "SHIPPED",
+    "DELIVERED",
+    "CANCELLED"
+  ];
+
+  if (!allowedStatuses.includes(newStatus)) {
+    return res.status(400).json({
+      message: "Invalid order status"
+    });
+  }
+
+  // Restore stock when the vendor cancels an order
+  // for the first time.
+  if (newStatus === "CANCELLED" && order.status !== "CANCELLED") {
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(
+        item.productId,
+        {
+          $inc: {
+            stock: item.quantity
+          }
+        }
+      );
+    }
+  }
+
+  order.status = newStatus;
 
   await order.save();
 
   res.json({
+    order
+  });
+}
+
+
+/*
+ * CUSTOMER CANCEL ORDER
+ */
+export async function cancelOrder(req, res) {
+  const order = await Order.findOne({
+    _id: req.params.id,
+    customerId: req.user._id
+  });
+
+  if (!order) {
+    return res.status(404).json({
+      message: "Order not found"
+    });
+  }
+
+  // Prevent cancelling an already cancelled order
+  if (order.status === "CANCELLED") {
+    return res.status(400).json({
+      message: "Order is already cancelled"
+    });
+  }
+
+  // Customer can cancel only before the order is shipped
+  if (!["PLACED", "PROCESSING"].includes(order.status)) {
+    return res.status(400).json({
+      message: "This order can no longer be cancelled"
+    });
+  }
+
+  // Restore product stock
+  for (const item of order.items) {
+    await Product.findByIdAndUpdate(
+      item.productId,
+      {
+        $inc: {
+          stock: item.quantity
+        }
+      }
+    );
+  }
+
+  order.status = "CANCELLED";
+
+  await order.save();
+
+  res.json({
+    message: "Order cancelled successfully",
     order
   });
 }
