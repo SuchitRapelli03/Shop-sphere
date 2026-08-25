@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+﻿import React, { useCallback, useEffect, useState } from "react";
 import api from "../services/api.js";
 
 export default function CustomerOrders() {
@@ -86,23 +86,23 @@ export default function CustomerOrders() {
       {
         name: "PLACED",
         label: "Order Placed",
-        icon: "🛒",
+        icon: "≡ƒ¢Æ",
       },
       {
         name: "PROCESSING",
         label: "Processing",
-        icon: "⚙️",
+        icon: "ΓÜÖ∩╕Å",
       },
       
       {
         name: "SHIPPED",
         label: "Shipped",
-        icon: "🚚",
+        icon: "≡ƒÜÜ",
       },
       {
         name: "DELIVERED",
         label: "Delivered",
-        icon: "📦",
+        icon: "≡ƒôª",
       },
     ];
 
@@ -255,14 +255,14 @@ export default function CustomerOrders() {
             disabled={refreshing}
             className="rounded-xl border bg-white px-5 py-3 font-semibold shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
           >
-            {refreshing ? "Updating..." : "↻ Refresh"}
+            {refreshing ? "Updating..." : "Γå╗ Refresh"}
           </button>
 
         </div>
 
         {/* Auto update */}
         <div className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 px-5 py-3 text-sm text-indigo-700">
-          🔄 Order status automatically updates every 15 seconds.
+          ≡ƒöä Order status automatically updates every 15 seconds.
         </div>
 
         {/* Orders */}
@@ -270,7 +270,7 @@ export default function CustomerOrders() {
           <div className="mt-8 rounded-3xl border bg-white p-12 text-center shadow-sm">
 
             <div className="text-6xl">
-              🛍️
+              ≡ƒ¢ì∩╕Å
             </div>
 
             <h2 className="mt-5 text-2xl font-bold">
@@ -373,7 +373,7 @@ export default function CustomerOrders() {
                         </div>
 
                         <p className="font-bold">
-                          ₹{item.price * item.quantity}
+                          Γé╣{item.price * item.quantity}
                         </p>
 
                       </div>
@@ -392,7 +392,7 @@ export default function CustomerOrders() {
                   </span>
 
                   <span className="text-2xl font-black text-indigo-600">
-                    ₹{order.total}
+                    Γé╣{order.total}
                   </span>
 
                 </div>
