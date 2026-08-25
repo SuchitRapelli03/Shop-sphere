@@ -64,6 +64,9 @@ export default function CustomerOrders() {
       case "PLACED":
         return "bg-yellow-100 text-yellow-700";
 
+      case "PROCESSING":
+        return "bg-orange-100 text-orange-700";
+
       default:
         return "bg-slate-100 text-slate-700";
     }
@@ -86,23 +89,22 @@ export default function CustomerOrders() {
       {
         name: "PLACED",
         label: "Order Placed",
-        icon: "≡ƒ¢Æ",
+        icon: "1",
       },
       {
         name: "PROCESSING",
         label: "Processing",
-        icon: "ΓÜÖ∩╕Å",
+        icon: "2",
       },
-      
       {
         name: "SHIPPED",
         label: "Shipped",
-        icon: "≡ƒÜÜ",
+        icon: "3",
       },
       {
         name: "DELIVERED",
         label: "Delivered",
-        icon: "≡ƒôª",
+        icon: "4",
       },
     ];
 
@@ -115,20 +117,15 @@ export default function CustomerOrders() {
         </h3>
 
         <div className="relative">
-
           {statuses.map((item, index) => {
-            const completed =
-              currentIndex >= index;
-
-            const active =
-              currentIndex === index;
+            const completed = currentIndex >= index;
+            const active = currentIndex === index;
 
             return (
               <div
                 key={item.name}
                 className="relative flex gap-4 pb-7 last:pb-0"
               >
-
                 {/* Connecting line */}
                 {index < statuses.length - 1 && (
                   <div
@@ -188,7 +185,6 @@ export default function CustomerOrders() {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-7xl px-6 py-12">
-
           <h1 className="text-4xl font-black">
             My Orders
           </h1>
@@ -196,7 +192,6 @@ export default function CustomerOrders() {
           <p className="mt-3 text-slate-600">
             Loading your orders...
           </p>
-
         </div>
       </main>
     );
@@ -207,7 +202,6 @@ export default function CustomerOrders() {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-7xl px-6 py-12">
-
           <h1 className="text-4xl font-black">
             My Orders
           </h1>
@@ -222,7 +216,6 @@ export default function CustomerOrders() {
           >
             Try Again
           </button>
-
         </div>
       </main>
     );
@@ -230,12 +223,10 @@ export default function CustomerOrders() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-
       <div className="mx-auto max-w-7xl px-6 py-12">
 
         {/* Header */}
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
-
           <div>
             <p className="font-semibold text-indigo-600">
               ShopSphere
@@ -255,22 +246,20 @@ export default function CustomerOrders() {
             disabled={refreshing}
             className="rounded-xl border bg-white px-5 py-3 font-semibold shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
           >
-            {refreshing ? "Updating..." : "Γå╗ Refresh"}
+            {refreshing ? "Updating..." : "↻ Refresh"}
           </button>
-
         </div>
 
         {/* Auto update */}
         <div className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 px-5 py-3 text-sm text-indigo-700">
-          ≡ƒöä Order status automatically updates every 15 seconds.
+          🔄 Order status automatically updates every 15 seconds.
         </div>
 
         {/* Orders */}
         {orders.length === 0 ? (
           <div className="mt-8 rounded-3xl border bg-white p-12 text-center shadow-sm">
-
             <div className="text-6xl">
-              ≡ƒ¢ì∩╕Å
+              📦
             </div>
 
             <h2 className="mt-5 text-2xl font-bold">
@@ -280,21 +269,16 @@ export default function CustomerOrders() {
             <p className="mt-2 text-slate-500">
               Your orders will appear here after you complete a purchase.
             </p>
-
           </div>
         ) : (
           <div className="mt-8 space-y-6">
-
             {orders.map((order) => (
-
               <div
                 key={order._id}
                 className="overflow-hidden rounded-3xl border bg-white shadow-sm"
               >
-
                 {/* Order header */}
                 <div className="flex flex-col justify-between gap-5 border-b p-6 md:flex-row md:items-center">
-
                   <div>
                     <p className="text-sm text-slate-500">
                       Order ID
@@ -305,13 +289,18 @@ export default function CustomerOrders() {
                     </p>
 
                     <p className="mt-2 text-sm text-slate-500">
-                        Placed on{" "}
-                        {order.createdAt
-                          ? new Date(order.createdAt).toLocaleString("en-IN", {
+                      Placed on{" "}
+                      {order.createdAt
+                        ? new Date(
+                            order.createdAt
+                          ).toLocaleString(
+                            "en-IN",
+                            {
                               dateStyle: "medium",
                               timeStyle: "short",
-                            })
-                          : "Date unavailable"}
+                            }
+                          )
+                        : "Date unavailable"}
                     </p>
                   </div>
 
@@ -338,7 +327,6 @@ export default function CustomerOrders() {
                       {order.paymentStatus}
                     </p>
                   </div>
-
                 </div>
 
                 {/* Tracking */}
@@ -348,20 +336,19 @@ export default function CustomerOrders() {
 
                 {/* Items */}
                 <div className="border-t p-6">
-
                   <h3 className="text-lg font-bold">
                     Items
                   </h3>
 
                   <div className="mt-4 space-y-4">
-
-                    {order.items?.map((item) => (
-
+                    {order.items?.map((item, index) => (
                       <div
-                        key={item.productId}
+                        key={
+                          item.productId ||
+                          index
+                        }
                         className="flex items-center justify-between rounded-xl bg-slate-50 p-4"
                       >
-
                         <div>
                           <p className="font-semibold">
                             {item.name}
@@ -373,39 +360,35 @@ export default function CustomerOrders() {
                         </div>
 
                         <p className="font-bold">
-                          Γé╣{item.price * item.quantity}
+                          ₹
+                          {(
+                            Number(item.price) *
+                            Number(item.quantity)
+                          ).toLocaleString("en-IN")}
                         </p>
-
                       </div>
-
                     ))}
-
                   </div>
-
                 </div>
 
                 {/* Total */}
                 <div className="flex items-center justify-between border-t bg-slate-50 p-6">
-
                   <span className="text-lg font-bold">
                     Total
                   </span>
 
                   <span className="text-2xl font-black text-indigo-600">
-                    Γé╣{order.total}
+                    ₹
+                    {Number(
+                      order.total || 0
+                    ).toLocaleString("en-IN")}
                   </span>
-
                 </div>
-
               </div>
-
             ))}
-
           </div>
         )}
-
       </div>
-
     </main>
   );
 }
