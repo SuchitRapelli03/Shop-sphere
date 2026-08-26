@@ -1,41 +1,59 @@
 import Product from "../models/Product.js";
 import Store from "../models/Store.js";
+import User from "../models/User.js";
 
 export async function createProduct(req, res) {
-  const {
-    storeId,
-    name,
-    description,
-    price,
-    stock,
-    category,
-    images,
-  } = req.body;
+  try {
+    const {
+      storeId,
+      name,
+      description,
+      price,
+      stock,
+      category,
+      images,
+    } = req.body;
 
-  const store = await Store.findOne({
-    _id: storeId,
-    vendorId: req.user._id,
-  });
+    const store = await Store.findOne({
+      _id: storeId,
+      vendorId: req.user._id,
+      status: "ACTIVE",
+    });
 
-  if (!store) {
-    return res.status(403).json({
-      message: "You do not own this store",
+    if (!store) {
+      return res.status(403).json({
+        message:
+          "You do not own this active store",
+      });
+    }
+
+    const product = await Product.create({
+      storeId,
+      vendorId: req.user._id,
+      name,
+      description,
+      price,
+      stock,
+      category,
+      images: images || [],
+    });
+
+    res.status(201).json({ product });
+  } catch (error) {
+    console.error(
+      "CREATE PRODUCT ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Failed to create product",
     });
   }
-
-  const product = await Product.create({
-    storeId,
-    vendorId: req.user._id,
-    name,
-    description,
-    price,
-    stock,
-    category,
-    images: images || [],
-  });
-
-  res.status(201).json({ product });
 }
+
+/* =========================
+   PUBLIC PRODUCTS
+========================= */
 
 export async function listProducts(req, res) {
   try {
@@ -54,17 +72,14 @@ export async function listProducts(req, res) {
       active: true,
     };
 
-    // Store filter
     if (storeId) {
       filter.storeId = storeId;
     }
 
-    // Category filter
     if (category) {
       filter.category = category;
     }
 
-    // Search by product name or description
     if (search) {
       filter.$or = [
         {
@@ -82,21 +97,23 @@ export async function listProducts(req, res) {
       ];
     }
 
-    // Price filtering
     if (minPrice || maxPrice) {
       filter.price = {};
 
       if (minPrice) {
-        filter.price.$gte = Number(minPrice);
+        filter.price.$gte =
+          Number(minPrice);
       }
 
       if (maxPrice) {
-        filter.price.$lte = Number(maxPrice);
+        filter.price.$lte =
+          Number(maxPrice);
       }
     }
 
-    // Sorting
-    let sortOption = { createdAt: -1 };
+    let sortOption = {
+      createdAt: -1,
+    };
 
     if (sort === "price-low") {
       sortOption = { price: 1 };
@@ -110,39 +127,65 @@ export async function listProducts(req, res) {
       sortOption = { name: 1 };
     }
 
-    // Pagination
-    const currentPage = Math.max(Number(page), 1);
-    const itemsPerPage = Math.min(
-      Math.max(Number(limit), 1),
-      50
-    );
+    const currentPage =
+      Math.max(Number(page), 1);
+
+    const itemsPerPage =
+      Math.min(
+        Math.max(Number(limit), 1),
+        50
+      );
 
     const skip =
-      (currentPage - 1) * itemsPerPage;
+      (currentPage - 1) *
+      itemsPerPage;
 
-    const [products, total] = await Promise.all([
-      Product.find(filter)
-        .populate("storeId", "name slug")
+    const products =
+      await Product.find(filter)
+        .populate(
+          "storeId",
+          "name slug status vendorId"
+        )
+        .populate(
+          "vendorId",
+          "name email status"
+        )
         .sort(sortOption)
         .skip(skip)
-        .limit(itemsPerPage),
+        .limit(itemsPerPage);
 
-      Product.countDocuments(filter),
-    ]);
+    const validProducts =
+      products.filter(
+        (product) =>
+          product.storeId &&
+          product.storeId.status ===
+            "ACTIVE" &&
+          product.vendorId &&
+          product.vendorId.status ===
+            "ACTIVE" &&
+          product.storeId.vendorId &&
+          product.storeId.vendorId.toString() ===
+            product.vendorId._id.toString()
+      );
 
     res.json({
-      products,
+      products: validProducts,
+
       pagination: {
         page: currentPage,
         limit: itemsPerPage,
-        total,
+        total: validProducts.length,
         pages: Math.ceil(
-          total / itemsPerPage
+          validProducts.length /
+            itemsPerPage
         ),
       },
     });
   } catch (error) {
-    console.error("Product search error:", error);
+    console.error(
+      "PRODUCT SEARCH ERROR:",
+      error
+    );
 
     res.status(500).json({
       message: "Unable to load products",
@@ -150,52 +193,167 @@ export async function listProducts(req, res) {
   }
 }
 
+/* =========================
+   VENDOR PRODUCTS
+========================= */
+
+export async function listVendorProducts(
+  req,
+  res
+) {
+  try {
+    const products =
+      await Product.find({
+        vendorId: req.user._id,
+      })
+        .populate(
+          "storeId",
+          "name slug status"
+        )
+        .sort({
+          createdAt: -1,
+        });
+
+    res.json({ products });
+  } catch (error) {
+    console.error(
+      "LIST VENDOR PRODUCTS ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message:
+        "Failed to load your products",
+    });
+  }
+}
+
+/* =========================
+   GET PRODUCT
+========================= */
+
 export async function getProduct(req, res) {
-  const product = await Product.findById(
-    req.params.id
-  ).populate("storeId", "name slug");
+  try {
+    const product =
+      await Product.findById(
+        req.params.id
+      )
+        .populate(
+          "storeId",
+          "name slug status vendorId"
+        )
+        .populate(
+          "vendorId",
+          "name email status"
+        );
 
-  if (!product || !product.active) {
-    return res.status(404).json({
-      message: "Product not found",
+    if (
+      !product ||
+      !product.active ||
+      !product.storeId ||
+      product.storeId.status !==
+        "ACTIVE" ||
+      !product.vendorId ||
+      product.vendorId.status !==
+        "ACTIVE" ||
+      product.storeId.vendorId.toString() !==
+        product.vendorId._id.toString()
+    ) {
+      return res.status(404).json({
+        message:
+          "Product is no longer available",
+      });
+    }
+
+    res.json({ product });
+  } catch (error) {
+    console.error(
+      "GET PRODUCT ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Failed to load product",
     });
   }
-
-  res.json({ product });
 }
 
-export async function updateProduct(req, res) {
-  const product = await Product.findOne({
-    _id: req.params.id,
-    vendorId: req.user._id,
-  });
+/* =========================
+   UPDATE PRODUCT
+========================= */
 
-  if (!product) {
-    return res.status(404).json({
-      message: "Product not found",
+export async function updateProduct(
+  req,
+  res
+) {
+  try {
+    const product =
+      await Product.findOne({
+        _id: req.params.id,
+        vendorId: req.user._id,
+      });
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    Object.assign(
+      product,
+      req.body
+    );
+
+    await product.save();
+
+    res.json({ product });
+  } catch (error) {
+    console.error(
+      "UPDATE PRODUCT ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message:
+        "Failed to update product",
     });
   }
-
-  Object.assign(product, req.body);
-
-  await product.save();
-
-  res.json({ product });
 }
 
-export async function deleteProduct(req, res) {
-  const product = await Product.findOneAndDelete({
-    _id: req.params.id,
-    vendorId: req.user._id,
-  });
+/* =========================
+   DELETE PRODUCT
+========================= */
 
-  if (!product) {
-    return res.status(404).json({
-      message: "Product not found",
+export async function deleteProduct(
+  req,
+  res
+) {
+  try {
+    const product =
+      await Product.findOneAndDelete({
+        _id: req.params.id,
+        vendorId: req.user._id,
+      });
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    res.json({
+      message:
+        "Product deleted successfully",
+    });
+  } catch (error) {
+    console.error(
+      "DELETE PRODUCT ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message:
+        "Failed to delete product",
     });
   }
-
-  res.json({
-    message: "Product deleted",
-  });
 }
