@@ -1,8 +1,4 @@
-import React, {
-  useEffect,
-  useState
-} from "react";
-
+import React, { useEffect, useState } from "react";
 import api from "../services/api.js";
 
 import {
@@ -19,13 +15,9 @@ import {
 } from "recharts";
 
 export default function VendorDashboard() {
-
   const [data, setData] = useState(null);
-
   const [orders, setOrders] = useState([]);
-
   const [stores, setStores] = useState([]);
-
   const [products, setProducts] = useState([]);
 
   const [store, setStore] = useState({
@@ -37,8 +29,40 @@ export default function VendorDashboard() {
   const [product, setProduct] = useState({
     storeId: "",
     name: "",
+    description: "",
     price: 0,
-    stock: 0
+    stock: 0,
+    category: "",
+    images: []
+  });
+
+  // =========================
+  // EDIT STORE
+  // =========================
+
+  const [editingStoreId, setEditingStoreId] =
+    useState(null);
+
+  const [editStore, setEditStore] = useState({
+    name: "",
+    slug: "",
+    description: ""
+  });
+
+  // =========================
+  // EDIT PRODUCT
+  // =========================
+
+  const [editingProductId, setEditingProductId] =
+    useState(null);
+
+  const [editProduct, setEditProduct] = useState({
+    name: "",
+    description: "",
+    price: 0,
+    stock: 0,
+    category: "",
+    images: []
   });
 
   const [loading, setLoading] =
@@ -47,20 +71,16 @@ export default function VendorDashboard() {
   const [error, setError] =
     useState("");
 
-
-  /* =========================
-     LOAD DASHBOARD
-  ========================= */
+  // =========================
+  // LOAD DASHBOARD
+  // =========================
 
   useEffect(() => {
     loadDashboard();
   }, []);
 
-
   async function loadDashboard() {
-
     try {
-
       setError("");
 
       const [
@@ -69,67 +89,39 @@ export default function VendorDashboard() {
         productsResponse,
         ordersResponse
       ] = await Promise.all([
-
-        api.get(
-          "/analytics/vendor"
-        ),
-
-        api.get(
-          "/stores"
-        ),
-
-        api.get(
-          "/products"
-        ),
-
-        api.get(
-          "/orders/vendor"
-        )
+        api.get("/analytics/vendor"),
+        api.get("/stores"),
+        api.get("/products"),
+        api.get("/orders/vendor")
       ]);
-
 
       setData(
         analyticsResponse.data
       );
 
       setOrders(
-        ordersResponse.data.orders ||
-          []
+        ordersResponse.data.orders || []
       );
 
-
       const allStores =
-        storesResponse.data.stores ||
-        [];
+        storesResponse.data.stores || [];
 
       setStores(allStores);
 
-
       const allProducts =
-        productsResponse.data.products ||
-        [];
+        productsResponse.data.products || [];
 
       setProducts(allProducts);
 
-
       if (allStores.length > 0) {
-
-        const firstStore =
-          allStores[0];
-
-        setProduct(
-          current => ({
-            ...current,
-
-            storeId:
-              current.storeId ||
-              firstStore._id
-          })
-        );
+        setProduct((current) => ({
+          ...current,
+          storeId:
+            current.storeId ||
+            allStores[0]._id
+        }));
       }
-
     } catch (err) {
-
       console.error(
         "VENDOR DASHBOARD ERROR:",
         err
@@ -139,48 +131,35 @@ export default function VendorDashboard() {
         err.response?.data?.message ||
           "Failed to load vendor dashboard"
       );
-
     } finally {
-
       setLoading(false);
     }
   }
 
-
-  /* =========================
-     CREATE STORE
-  ========================= */
+  // =========================
+  // CREATE STORE
+  // =========================
 
   async function createStore(e) {
-
     e.preventDefault();
 
-    if (
-      !store.name ||
-      !store.slug
-    ) {
-
+    if (!store.name || !store.slug) {
       alert(
         "Please enter store name and slug."
       );
-
       return;
     }
 
-
     try {
-
       const response =
         await api.post(
           "/stores",
           store
         );
 
-
       alert(
         "Store created successfully!"
       );
-
 
       setStore({
         name: "",
@@ -188,21 +167,14 @@ export default function VendorDashboard() {
         description: ""
       });
 
-
-      setProduct(
-        current => ({
-          ...current,
-
-          storeId:
-            response.data.store._id
-        })
-      );
-
+      setProduct((current) => ({
+        ...current,
+        storeId:
+          response.data.store._id
+      }));
 
       await loadDashboard();
-
     } catch (err) {
-
       console.error(
         "CREATE STORE ERROR:",
         err
@@ -215,42 +187,127 @@ export default function VendorDashboard() {
     }
   }
 
+  // =========================
+  // START EDIT STORE
+  // =========================
 
-  /* =========================
-     DELETE STORE
-  ========================= */
+  function startEditingStore(
+    currentStore
+  ) {
+    setEditingStoreId(
+      currentStore._id
+    );
+
+    setEditStore({
+      name:
+        currentStore.name || "",
+      slug:
+        currentStore.slug || "",
+      description:
+        currentStore.description || ""
+    });
+  }
+
+  // =========================
+  // CANCEL EDIT STORE
+  // =========================
+
+  function cancelEditingStore() {
+    setEditingStoreId(null);
+
+    setEditStore({
+      name: "",
+      slug: "",
+      description: ""
+    });
+  }
+
+  // =========================
+  // UPDATE STORE
+  // =========================
+
+  async function updateStore(e) {
+    e.preventDefault();
+
+    if (!editingStoreId) {
+      return;
+    }
+
+    if (
+      !editStore.name.trim() ||
+      !editStore.slug.trim()
+    ) {
+      alert(
+        "Store name and slug are required."
+      );
+
+      return;
+    }
+
+    try {
+      await api.put(
+        `/stores/${editingStoreId}`,
+        {
+          name:
+            editStore.name.trim(),
+
+          slug:
+            editStore.slug
+              .trim()
+              .toLowerCase(),
+
+          description:
+            editStore.description.trim()
+        }
+      );
+
+      alert(
+        "Store updated successfully!"
+      );
+
+      cancelEditingStore();
+
+      await loadDashboard();
+    } catch (err) {
+      console.error(
+        "UPDATE STORE ERROR:",
+        err
+      );
+
+      alert(
+        err.response?.data?.message ||
+          "Unable to update store"
+      );
+    }
+  }
+
+  // =========================
+  // DELETE STORE
+  // =========================
 
   async function deleteStore(
     storeId
   ) {
-
     const confirmed =
       window.confirm(
         "Are you sure you want to delete this store?"
       );
 
-
     if (!confirmed) {
       return;
     }
 
-
     try {
-
       await api.delete(
         `/stores/${storeId}`
       );
-
 
       alert(
         "Store deleted successfully!"
       );
 
-
       await loadDashboard();
-
     } catch (err) {
-
       console.error(
         "DELETE STORE ERROR:",
         err
@@ -263,18 +320,141 @@ export default function VendorDashboard() {
     }
   }
 
+  // =========================
+  // START EDIT PRODUCT
+  // =========================
 
-  /* =========================
-     CREATE PRODUCT
-  ========================= */
+  function startEditingProduct(
+    currentProduct
+  ) {
+    setEditingProductId(
+      currentProduct._id
+    );
 
-  async function createProduct(e) {
+    setEditProduct({
+      name:
+        currentProduct.name || "",
 
+      description:
+        currentProduct.description || "",
+
+      price:
+        currentProduct.price ?? 0,
+
+      stock:
+        currentProduct.stock ?? 0,
+
+      category:
+        currentProduct.category || "",
+
+      images:
+        Array.isArray(
+          currentProduct.images
+        )
+          ? currentProduct.images
+          : []
+    });
+  }
+
+  // =========================
+  // CANCEL EDIT PRODUCT
+  // =========================
+
+  function cancelEditingProduct() {
+    setEditingProductId(null);
+
+    setEditProduct({
+      name: "",
+      description: "",
+      price: 0,
+      stock: 0,
+      category: "",
+      images: []
+    });
+  }
+
+  // =========================
+  // UPDATE PRODUCT
+  // =========================
+
+  async function updateProduct(e) {
     e.preventDefault();
 
+    if (!editingProductId) {
+      return;
+    }
+
+    if (!editProduct.name.trim()) {
+      alert(
+        "Product name is required."
+      );
+
+      return;
+    }
+
+    if (
+      Number(editProduct.price) < 0 ||
+      Number(editProduct.stock) < 0
+    ) {
+      alert(
+        "Price and stock cannot be negative."
+      );
+
+      return;
+    }
+
+    try {
+      await api.put(
+        `/products/${editingProductId}`,
+        {
+          name:
+            editProduct.name.trim(),
+
+          description:
+            editProduct.description.trim(),
+
+          price:
+            Number(editProduct.price),
+
+          stock:
+            Number(editProduct.stock),
+
+          category:
+            editProduct.category.trim(),
+
+          images:
+            editProduct.images
+        }
+      );
+
+      alert(
+        "Product updated successfully!"
+      );
+
+      cancelEditingProduct();
+
+      await loadDashboard();
+    } catch (err) {
+      console.error(
+        "UPDATE PRODUCT ERROR:",
+        err
+      );
+
+      alert(
+        err.response?.data?.message ||
+          "Unable to update product"
+      );
+    }
+  }
+
+  // =========================
+  // CREATE PRODUCT
+  // =========================
+
+  async function createProduct(e) {
+    e.preventDefault();
 
     if (!product.storeId) {
-
       alert(
         "Please create a store first."
       );
@@ -282,9 +462,7 @@ export default function VendorDashboard() {
       return;
     }
 
-
     if (!product.name) {
-
       alert(
         "Please enter product name."
       );
@@ -292,9 +470,7 @@ export default function VendorDashboard() {
       return;
     }
 
-
     try {
-
       await api.post(
         "/products",
         {
@@ -308,27 +484,23 @@ export default function VendorDashboard() {
         }
       );
 
-
       alert(
         "Product created successfully!"
       );
 
+      setProduct((current) => ({
+        ...current,
 
-      setProduct(
-        current => ({
-          ...current,
-
-          name: "",
-          price: 0,
-          stock: 0
-        })
-      );
-
+        name: "",
+        description: "",
+        price: 0,
+        stock: 0,
+        category: "",
+        images: []
+      }));
 
       await loadDashboard();
-
     } catch (err) {
-
       console.error(
         "CREATE PRODUCT ERROR:",
         err
@@ -341,42 +513,33 @@ export default function VendorDashboard() {
     }
   }
 
-
-  /* =========================
-     DELETE PRODUCT
-  ========================= */
+  // =========================
+  // DELETE PRODUCT
+  // =========================
 
   async function deleteProduct(
     productId
   ) {
-
     const confirmed =
       window.confirm(
         "Are you sure you want to delete this product?"
       );
 
-
     if (!confirmed) {
       return;
     }
 
-
     try {
-
       await api.delete(
         `/products/${productId}`
       );
-
 
       alert(
         "Product deleted successfully!"
       );
 
-
       await loadDashboard();
-
     } catch (err) {
-
       console.error(
         "DELETE PRODUCT ERROR:",
         err
@@ -389,18 +552,15 @@ export default function VendorDashboard() {
     }
   }
 
-
-  /* =========================
-     UPDATE ORDER STATUS
-  ========================= */
+  // =========================
+  // UPDATE ORDER STATUS
+  // =========================
 
   async function updateOrderStatus(
     orderId,
     status
   ) {
-
     try {
-
       await api.put(
         `/orders/${orderId}/status`,
         {
@@ -408,16 +568,12 @@ export default function VendorDashboard() {
         }
       );
 
-
       await loadDashboard();
-
 
       alert(
         "Order status updated successfully!"
       );
-
     } catch (err) {
-
       console.error(
         "ORDER STATUS ERROR:",
         err
@@ -430,29 +586,21 @@ export default function VendorDashboard() {
     }
   }
 
+  // =========================
+  // FORMAT CURRENCY
+  // =========================
 
-  /* =========================
-     FORMAT CURRENCY
-  ========================= */
-
-  function formatCurrency(
-    value
-  ) {
-
+  function formatCurrency(value) {
     return `₹${Number(
       value || 0
     ).toLocaleString("en-IN")}`;
   }
 
+  // =========================
+  // FORMAT DATE
+  // =========================
 
-  /* =========================
-     FORMAT DATE
-  ========================= */
-
-  function formatDate(
-    date
-  ) {
-
+  function formatDate(date) {
     if (!date) {
       return "";
     }
@@ -467,56 +615,45 @@ export default function VendorDashboard() {
     return `${parts[2]}/${parts[1]}`;
   }
 
-
-  /* =========================
-     CHART DATA
-  ========================= */
+  // =========================
+  // CHART DATA
+  // =========================
 
   const chartData =
-    (data?.revenueTrend || [])
-      .map(item => ({
+    (data?.revenueTrend || []).map(
+      (item) => ({
         ...item,
 
         dateLabel:
           formatDate(
             item.date
           )
-      }));
+      })
+    );
 
-
-  /* =========================
-     LOADING
-  ========================= */
+  // =========================
+  // LOADING
+  // =========================
 
   if (loading) {
-
     return (
       <main className="min-h-screen bg-slate-50">
-
         <div className="mx-auto max-w-7xl px-6 py-12">
-
           <h1 className="text-3xl font-black">
-
             Loading Vendor Dashboard...
-
           </h1>
-
         </div>
-
       </main>
     );
   }
 
-
-  /* =========================
-     ERROR
-  ========================= */
+  // =========================
+  // ERROR
+  // =========================
 
   if (error) {
-
     return (
       <main className="min-h-screen bg-slate-50">
-
         <div className="mx-auto max-w-7xl px-6 py-12">
 
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
@@ -530,7 +667,9 @@ export default function VendorDashboard() {
             </p>
 
             <button
-              onClick={loadDashboard}
+              onClick={
+                loadDashboard
+              }
               className="mt-5 rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white"
             >
               Try Again
@@ -539,18 +678,14 @@ export default function VendorDashboard() {
           </div>
 
         </div>
-
       </main>
     );
   }
 
-
   return (
-
     <main className="min-h-screen bg-slate-50">
 
       <div className="mx-auto max-w-7xl px-6 py-12">
-
 
         {/* =========================
             HEADER
@@ -575,16 +710,16 @@ export default function VendorDashboard() {
 
           </div>
 
-
           <button
-            onClick={loadDashboard}
+            onClick={
+              loadDashboard
+            }
             className="rounded-xl border border-slate-200 bg-white px-5 py-3 font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
           >
             ↻ Refresh
           </button>
 
         </div>
-
 
         {/* =========================
             REVENUE
@@ -612,7 +747,6 @@ export default function VendorDashboard() {
 
         </section>
 
-
         {/* =========================
             BASIC ANALYTICS
         ========================= */}
@@ -622,7 +756,6 @@ export default function VendorDashboard() {
           <h2 className="text-2xl font-black text-slate-900">
             Business Statistics
           </h2>
-
 
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
@@ -656,7 +789,6 @@ export default function VendorDashboard() {
                 "₹",
                 "bg-green-100"
               ]
-
             ].map(
               ([
                 label,
@@ -697,7 +829,6 @@ export default function VendorDashboard() {
 
         </section>
 
-
         {/* =========================
             ORDER ANALYTICS
         ========================= */}
@@ -707,7 +838,6 @@ export default function VendorDashboard() {
           <h2 className="text-2xl font-black text-slate-900">
             Order Analytics
           </h2>
-
 
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
 
@@ -723,7 +853,6 @@ export default function VendorDashboard() {
 
             </div>
 
-
             <div className="rounded-2xl border bg-white p-6 shadow-sm">
 
               <p className="text-sm text-slate-500">
@@ -735,7 +864,6 @@ export default function VendorDashboard() {
               </p>
 
             </div>
-
 
             <div className="rounded-2xl border bg-white p-6 shadow-sm">
 
@@ -753,7 +881,6 @@ export default function VendorDashboard() {
 
         </section>
 
-
         {/* =========================
             REVENUE CHART
         ========================= */}
@@ -767,7 +894,6 @@ export default function VendorDashboard() {
           <p className="mt-1 text-sm text-slate-500">
             Your paid revenue during the last 7 days.
           </p>
-
 
           <div className="mt-6 h-80">
 
@@ -824,7 +950,6 @@ export default function VendorDashboard() {
 
         </section>
 
-
         {/* =========================
             ORDERS CHART
         ========================= */}
@@ -838,7 +963,6 @@ export default function VendorDashboard() {
           <p className="mt-1 text-sm text-slate-500">
             Orders received during the last 7 days.
           </p>
-
 
           <div className="mt-6 h-80">
 
@@ -895,7 +1019,6 @@ export default function VendorDashboard() {
 
         </section>
 
-
         {/* =========================
             MY STORES
         ========================= */}
@@ -922,7 +1045,6 @@ export default function VendorDashboard() {
 
           </div>
 
-
           {stores.length === 0 ? (
 
             <div className="mt-6 rounded-2xl border bg-white p-8 text-center">
@@ -942,55 +1064,173 @@ export default function VendorDashboard() {
             <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
 
               {stores.map(
-                currentStore => (
+                (currentStore) => (
 
                   <div
-                    key={currentStore._id}
+                    key={
+                      currentStore._id
+                    }
                     className="rounded-2xl border bg-white p-5 shadow-sm"
                   >
 
-                    <div className="flex items-start justify-between gap-4">
+                    {editingStoreId ===
+                    currentStore._id ? (
 
-                      <div>
+                      <form
+                        onSubmit={
+                          updateStore
+                        }
+                      >
 
-                        <h3 className="text-xl font-bold">
-                          {currentStore.name}
+                        <h3 className="text-xl font-black">
+                          Edit Store
                         </h3>
 
-                        <p className="mt-1 text-sm text-slate-500">
-                          /{currentStore.slug}
+                        <input
+                          className="mt-4 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
+                          placeholder="Store name"
+                          value={
+                            editStore.name
+                          }
+                          onChange={(e) =>
+                            setEditStore({
+                              ...editStore,
+                              name:
+                                e.target.value
+                            })
+                          }
+                        />
+
+                        <input
+                          className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
+                          placeholder="store-slug"
+                          value={
+                            editStore.slug
+                          }
+                          onChange={(e) =>
+                            setEditStore({
+                              ...editStore,
+                              slug:
+                                e.target.value
+                            })
+                          }
+                        />
+
+                        <textarea
+                          className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
+                          placeholder="Description"
+                          rows="4"
+                          value={
+                            editStore.description
+                          }
+                          onChange={(e) =>
+                            setEditStore({
+                              ...editStore,
+                              description:
+                                e.target.value
+                            })
+                          }
+                        />
+
+                        <div className="mt-4 flex gap-3">
+
+                          <button
+                            type="submit"
+                            className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-700"
+                          >
+                            Save Changes
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={
+                              cancelEditingStore
+                            }
+                            className="flex-1 rounded-xl bg-slate-100 px-4 py-3 font-bold text-slate-700 hover:bg-slate-200"
+                          >
+                            Cancel
+                          </button>
+
+                        </div>
+
+                      </form>
+
+                    ) : (
+
+                      <>
+
+                        <div className="flex items-start justify-between gap-4">
+
+                          <div>
+
+                            <h3 className="text-xl font-bold">
+                              {
+                                currentStore.name
+                              }
+                            </h3>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                              /
+                              {
+                                currentStore.slug
+                              }
+                            </p>
+
+                          </div>
+
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-bold ${
+                              currentStore.status ===
+                              "SUSPENDED"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-green-100 text-green-700"
+                            }`}
+                          >
+                            {
+                              currentStore.status ||
+                              "ACTIVE"
+                            }
+                          </span>
+
+                        </div>
+
+                        <p className="mt-4 text-sm text-slate-600">
+                          {
+                            currentStore.description ||
+                            "No description available."
+                          }
                         </p>
 
-                      </div>
+                        <div className="mt-5 grid gap-3">
 
-                      <span className={`rounded-full px-3 py-1 text-xs font-bold ${
-                        currentStore.status === "SUSPENDED"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-green-100 text-green-700"
-                      }`}>
-                        {currentStore.status || "ACTIVE"}
-                      </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              startEditingStore(
+                                currentStore
+                              )
+                            }
+                            className="w-full rounded-xl bg-indigo-50 px-4 py-3 font-bold text-indigo-600 hover:bg-indigo-100"
+                          >
+                            ✏️ Edit Store
+                          </button>
 
-                    </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              deleteStore(
+                                currentStore._id
+                              )
+                            }
+                            className="w-full rounded-xl bg-red-50 px-4 py-3 font-bold text-red-600 hover:bg-red-100"
+                          >
+                            Delete Store
+                          </button>
 
+                        </div>
 
-                    <p className="mt-4 text-sm text-slate-600">
-                      {currentStore.description ||
-                        "No description available."}
-                    </p>
-
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        deleteStore(
-                          currentStore._id
-                        )
-                      }
-                      className="mt-5 w-full rounded-xl bg-red-50 px-4 py-3 font-bold text-red-600 hover:bg-red-100"
-                    >
-                      Delete Store
-                    </button>
+                      </>
+                    )}
 
                   </div>
 
@@ -1002,7 +1242,6 @@ export default function VendorDashboard() {
           )}
 
         </section>
-
 
         {/* =========================
             MY PRODUCTS
@@ -1030,7 +1269,6 @@ export default function VendorDashboard() {
 
           </div>
 
-
           {products.length === 0 ? (
 
             <div className="mt-6 rounded-2xl border bg-white p-8 text-center">
@@ -1050,41 +1288,213 @@ export default function VendorDashboard() {
             <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
 
               {products.map(
-                currentProduct => (
+                (currentProduct) => (
 
                   <div
-                    key={currentProduct._id}
+                    key={
+                      currentProduct._id
+                    }
                     className="rounded-2xl border bg-white p-5 shadow-sm"
                   >
 
-                    <h3 className="text-xl font-bold">
-                      {currentProduct.name}
-                    </h3>
+                    {editingProductId ===
+                    currentProduct._id ? (
 
-                    <p className="mt-2 text-lg font-black text-indigo-600">
-                      ₹{currentProduct.price}
-                    </p>
+                      /* =========================
+                         EDIT PRODUCT FORM
+                      ========================= */
 
-                    <div className="mt-3 flex gap-2">
+                      <form
+                        onSubmit={
+                          updateProduct
+                        }
+                      >
 
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
-                        Stock: {currentProduct.stock}
-                      </span>
+                        <h3 className="text-xl font-black">
+                          Edit Product
+                        </h3>
 
-                    </div>
+                        <input
+                          className="mt-4 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
+                          placeholder="Product name"
+                          value={
+                            editProduct.name
+                          }
+                          onChange={(e) =>
+                            setEditProduct({
+                              ...editProduct,
+                              name:
+                                e.target.value
+                            })
+                          }
+                        />
 
+                        <textarea
+                          className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
+                          placeholder="Product description"
+                          rows="4"
+                          value={
+                            editProduct.description
+                          }
+                          onChange={(e) =>
+                            setEditProduct({
+                              ...editProduct,
+                              description:
+                                e.target.value
+                            })
+                          }
+                        />
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        deleteProduct(
-                          currentProduct._id
-                        )
-                      }
-                      className="mt-5 w-full rounded-xl bg-red-50 px-4 py-3 font-bold text-red-600 hover:bg-red-100"
-                    >
-                      Delete Product
-                    </button>
+                        <input
+                          className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
+                          placeholder="Price"
+                          type="number"
+                          min="0"
+                          value={
+                            editProduct.price
+                          }
+                          onChange={(e) =>
+                            setEditProduct({
+                              ...editProduct,
+                              price:
+                                e.target.value
+                            })
+                          }
+                        />
+
+                        <input
+                          className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
+                          placeholder="Stock"
+                          type="number"
+                          min="0"
+                          value={
+                            editProduct.stock
+                          }
+                          onChange={(e) =>
+                            setEditProduct({
+                              ...editProduct,
+                              stock:
+                                e.target.value
+                            })
+                          }
+                        />
+
+                        <input
+                          className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
+                          placeholder="Category"
+                          value={
+                            editProduct.category
+                          }
+                          onChange={(e) =>
+                            setEditProduct({
+                              ...editProduct,
+                              category:
+                                e.target.value
+                            })
+                          }
+                        />
+
+                        <div className="mt-4 flex gap-3">
+
+                          <button
+                            type="submit"
+                            className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 font-bold text-white hover:bg-indigo-700"
+                          >
+                            Save Changes
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={
+                              cancelEditingProduct
+                            }
+                            className="flex-1 rounded-xl bg-slate-100 px-4 py-3 font-bold text-slate-700 hover:bg-slate-200"
+                          >
+                            Cancel
+                          </button>
+
+                        </div>
+
+                      </form>
+
+                    ) : (
+
+                      /* =========================
+                         PRODUCT VIEW
+                      ========================= */
+
+                      <>
+
+                        <h3 className="text-xl font-bold">
+                          {
+                            currentProduct.name
+                          }
+                        </h3>
+
+                        <p className="mt-2 text-lg font-black text-indigo-600">
+                          ₹
+                          {
+                            currentProduct.price
+                          }
+                        </p>
+
+                        {currentProduct.description && (
+                          <p className="mt-3 text-sm text-slate-600">
+                            {
+                              currentProduct.description
+                            }
+                          </p>
+                        )}
+
+                        {currentProduct.category && (
+                          <span className="mt-3 inline-block rounded-full bg-purple-100 px-3 py-1 text-sm font-semibold text-purple-700">
+                            {
+                              currentProduct.category
+                            }
+                          </span>
+                        )}
+
+                        <div className="mt-3 flex gap-2">
+
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-600">
+                            Stock:{" "}
+                            {
+                              currentProduct.stock
+                            }
+                          </span>
+
+                        </div>
+
+                        <div className="mt-5 grid gap-3">
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              startEditingProduct(
+                                currentProduct
+                              )
+                            }
+                            className="w-full rounded-xl bg-indigo-50 px-4 py-3 font-bold text-indigo-600 hover:bg-indigo-100"
+                          >
+                            ✏️ Edit Product
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              deleteProduct(
+                                currentProduct._id
+                              )
+                            }
+                            className="w-full rounded-xl bg-red-50 px-4 py-3 font-bold text-red-600 hover:bg-red-100"
+                          >
+                            Delete Product
+                          </button>
+
+                        </div>
+
+                      </>
+                    )}
 
                   </div>
 
@@ -1096,7 +1506,6 @@ export default function VendorDashboard() {
           )}
 
         </section>
-
 
         {/* =========================
             CUSTOMER ORDERS
@@ -1124,7 +1533,6 @@ export default function VendorDashboard() {
 
           </div>
 
-
           {orders.length === 0 ? (
 
             <div className="mt-6 rounded-2xl border bg-white p-8 text-center">
@@ -1144,7 +1552,7 @@ export default function VendorDashboard() {
             <div className="mt-6 space-y-5">
 
               {orders.map(
-                order => (
+                (order) => (
 
                   <div
                     key={order._id}
@@ -1161,9 +1569,11 @@ export default function VendorDashboard() {
 
                         <p className="mt-1 text-lg font-black">
                           #
-                          {order._id
-                            .slice(-8)
-                            .toUpperCase()}
+                          {
+                            order._id
+                              .slice(-8)
+                              .toUpperCase()
+                          }
                         </p>
 
                         <p className="mt-2 text-sm text-slate-500">
@@ -1184,11 +1594,13 @@ export default function VendorDashboard() {
                         </p>
 
                         <p className="mt-3 text-2xl font-black">
-                          ₹{order.total}
+                          ₹
+                          {
+                            order.total
+                          }
                         </p>
 
                       </div>
-
 
                       <div>
 
@@ -1197,11 +1609,12 @@ export default function VendorDashboard() {
                         </p>
 
                         <span className="mt-1 inline-block rounded-full bg-indigo-100 px-4 py-2 text-sm font-bold text-indigo-700">
-                          {order.status}
+                          {
+                            order.status
+                          }
                         </span>
 
                       </div>
-
 
                       <div>
 
@@ -1220,13 +1633,14 @@ export default function VendorDashboard() {
                               : "bg-yellow-100 text-yellow-700"
                           }`}
                         >
-                          {order.paymentStatus}
+                          {
+                            order.paymentStatus
+                          }
                         </span>
 
                       </div>
 
                     </div>
-
 
                     {/* DELIVERY */}
 
@@ -1241,29 +1655,47 @@ export default function VendorDashboard() {
                         <div className="mt-4 space-y-2 text-sm text-slate-700">
 
                           <p className="font-bold">
-                            {order.shippingAddress.fullName}
+                            {
+                              order
+                                .shippingAddress
+                                .fullName
+                            }
                           </p>
 
                           <p>
                             📞{" "}
-                            {order.shippingAddress.phone}
-                          </p>
-
-                          <p>
-                            {order.shippingAddress.addressLine}
+                            {
+                              order
+                                .shippingAddress
+                                .phone
+                            }
                           </p>
 
                           <p>
                             {
-                              order.shippingAddress.city
+                              order
+                                .shippingAddress
+                                .addressLine
+                            }
+                          </p>
+
+                          <p>
+                            {
+                              order
+                                .shippingAddress
+                                .city
                             }
                             ,{" "}
                             {
-                              order.shippingAddress.state
+                              order
+                                .shippingAddress
+                                .state
                             }{" "}
                             -{" "}
                             {
-                              order.shippingAddress.pincode
+                              order
+                                .shippingAddress
+                                .pincode
                             }
                           </p>
 
@@ -1279,7 +1711,6 @@ export default function VendorDashboard() {
 
                     </div>
 
-
                     {/* ITEMS */}
 
                     <div className="mt-6 border-t pt-5">
@@ -1291,7 +1722,10 @@ export default function VendorDashboard() {
                       <div className="mt-3 space-y-2">
 
                         {order.items?.map(
-                          (item, index) => (
+                          (
+                            item,
+                            index
+                          ) => (
 
                             <div
                               key={
@@ -1304,24 +1738,30 @@ export default function VendorDashboard() {
                               <div>
 
                                 <p className="font-semibold">
-                                  {item.name}
+                                  {
+                                    item.name
+                                  }
                                 </p>
 
                                 <p className="mt-1 text-sm text-slate-500">
                                   Quantity:{" "}
-                                  {item.quantity}
+                                  {
+                                    item.quantity
+                                  }
                                 </p>
 
                               </div>
 
                               <p className="font-bold">
                                 ₹
-                                {Number(
-                                  item.price
-                                ) *
+                                {
+                                  Number(
+                                    item.price
+                                  ) *
                                   Number(
                                     item.quantity
-                                  )}
+                                  )
+                                }
                               </p>
 
                             </div>
@@ -1333,7 +1773,6 @@ export default function VendorDashboard() {
 
                     </div>
 
-
                     {/* TOTAL */}
 
                     <div className="mt-5 flex items-center justify-between border-t pt-5">
@@ -1343,11 +1782,13 @@ export default function VendorDashboard() {
                       </span>
 
                       <span className="text-2xl font-black text-indigo-600">
-                        ₹{order.total}
+                        ₹
+                        {
+                          order.total
+                        }
                       </span>
 
                     </div>
-
 
                     {/* UPDATE STATUS */}
 
@@ -1361,7 +1802,7 @@ export default function VendorDashboard() {
                         value={
                           order.status
                         }
-                        onChange={e =>
+                        onChange={(e) =>
                           updateOrderStatus(
                             order._id,
                             e.target.value
@@ -1405,13 +1846,11 @@ export default function VendorDashboard() {
 
         </section>
 
-
         {/* =========================
             CREATE STORE / PRODUCT
         ========================= */}
 
         <div className="mt-10 grid gap-8 md:grid-cols-2">
-
 
           {/* CREATE STORE */}
 
@@ -1424,12 +1863,13 @@ export default function VendorDashboard() {
               Create Store
             </h2>
 
-
             <input
               className="mt-4 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
               placeholder="Store name"
-              value={store.name}
-              onChange={e =>
+              value={
+                store.name
+              }
+              onChange={(e) =>
                 setStore({
                   ...store,
                   name:
@@ -1438,12 +1878,13 @@ export default function VendorDashboard() {
               }
             />
 
-
             <input
               className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
               placeholder="store-slug"
-              value={store.slug}
-              onChange={e =>
+              value={
+                store.slug
+              }
+              onChange={(e) =>
                 setStore({
                   ...store,
                   slug:
@@ -1452,7 +1893,6 @@ export default function VendorDashboard() {
               }
             />
 
-
             <textarea
               className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
               placeholder="Description"
@@ -1460,7 +1900,7 @@ export default function VendorDashboard() {
               value={
                 store.description
               }
-              onChange={e =>
+              onChange={(e) =>
                 setStore({
                   ...store,
                   description:
@@ -1468,7 +1908,6 @@ export default function VendorDashboard() {
                 })
               }
             />
-
 
             <button
               type="submit"
@@ -1479,11 +1918,12 @@ export default function VendorDashboard() {
 
           </form>
 
-
           {/* CREATE PRODUCT */}
 
           <form
-            onSubmit={createProduct}
+            onSubmit={
+              createProduct
+            }
             className="rounded-2xl border bg-white p-6 shadow-sm"
           >
 
@@ -1491,13 +1931,12 @@ export default function VendorDashboard() {
               Create Product
             </h2>
 
-
             <select
               className="mt-4 w-full rounded-xl border bg-white p-3"
               value={
                 product.storeId
               }
-              onChange={e =>
+              onChange={(e) =>
                 setProduct({
                   ...product,
                   storeId:
@@ -1511,7 +1950,7 @@ export default function VendorDashboard() {
               </option>
 
               {stores.map(
-                currentStore => (
+                (currentStore) => (
 
                   <option
                     key={
@@ -1531,14 +1970,13 @@ export default function VendorDashboard() {
 
             </select>
 
-
             <input
               className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
               placeholder="Product name"
               value={
                 product.name
               }
-              onChange={e =>
+              onChange={(e) =>
                 setProduct({
                   ...product,
                   name:
@@ -1547,6 +1985,21 @@ export default function VendorDashboard() {
               }
             />
 
+            <textarea
+              className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
+              placeholder="Product description"
+              rows="3"
+              value={
+                product.description
+              }
+              onChange={(e) =>
+                setProduct({
+                  ...product,
+                  description:
+                    e.target.value
+                })
+              }
+            />
 
             <input
               className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
@@ -1556,7 +2009,7 @@ export default function VendorDashboard() {
               value={
                 product.price
               }
-              onChange={e =>
+              onChange={(e) =>
                 setProduct({
                   ...product,
                   price:
@@ -1564,7 +2017,6 @@ export default function VendorDashboard() {
                 })
               }
             />
-
 
             <input
               className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
@@ -1574,7 +2026,7 @@ export default function VendorDashboard() {
               value={
                 product.stock
               }
-              onChange={e =>
+              onChange={(e) =>
                 setProduct({
                   ...product,
                   stock:
@@ -1583,6 +2035,20 @@ export default function VendorDashboard() {
               }
             />
 
+            <input
+              className="mt-3 w-full rounded-xl border p-3 outline-none focus:border-indigo-500"
+              placeholder="Category"
+              value={
+                product.category
+              }
+              onChange={(e) =>
+                setProduct({
+                  ...product,
+                  category:
+                    e.target.value
+                })
+              }
+            />
 
             <button
               type="submit"
@@ -1596,7 +2062,6 @@ export default function VendorDashboard() {
         </div>
 
       </div>
-
     </main>
   );
 }
