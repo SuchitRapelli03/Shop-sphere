@@ -1,6 +1,6 @@
 import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import api from "../services/api.js";
 import { setAuth } from "../redux/slices/authSlice.js";
 
@@ -44,14 +44,22 @@ export default function Login() {
   );
 }
 
-function AuthForm({ title, submit, form, setForm, button }) {
+function AuthForm({
+  title,
+  submit,
+  form,
+  setForm,
+  button,
+}) {
   return (
     <div className="mx-auto max-w-md px-6 py-16">
       <form
         onSubmit={submit}
         className="rounded-2xl border bg-white p-8 shadow-sm"
       >
-        <h1 className="text-3xl font-black">{title}</h1>
+        <h1 className="text-3xl font-black">
+          {title}
+        </h1>
 
         <input
           className="mt-6 w-full rounded-lg border p-3"
@@ -64,6 +72,7 @@ function AuthForm({ title, submit, form, setForm, button }) {
               email: e.target.value,
             })
           }
+          required
         />
 
         <input
@@ -77,6 +86,7 @@ function AuthForm({ title, submit, form, setForm, button }) {
               password: e.target.value,
             })
           }
+          required
         />
 
         <button
@@ -85,6 +95,17 @@ function AuthForm({ title, submit, form, setForm, button }) {
         >
           {button}
         </button>
+
+        {/* REGISTER LINK */}
+        <p className="mt-5 text-center text-sm text-slate-600">
+          Don't have an account?{" "}
+          <Link
+            to="/register"
+            className="font-bold text-indigo-600 hover:text-indigo-700"
+          >
+            Register
+          </Link>
+        </p>
       </form>
     </div>
   );

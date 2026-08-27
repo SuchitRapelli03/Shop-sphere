@@ -22,10 +22,17 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
-      {/* Top navigation */}
+
+      {/* =========================
+          TOP NAVIGATION
+      ========================= */}
+
       <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 py-3 lg:px-6">
 
-        {/* Logo */}
+        {/* =========================
+            LOGO
+        ========================= */}
+
         <Link
           to="/"
           className="flex shrink-0 items-center gap-2"
@@ -45,9 +52,14 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* Search */}
+
+        {/* =========================
+            SEARCH
+        ========================= */}
+
         <div className="hidden flex-1 md:block">
           <div className="flex h-11 overflow-hidden rounded-lg border border-slate-300 bg-slate-50 transition focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
+
             <input
               type="text"
               placeholder="Search for products, stores and more..."
@@ -61,34 +73,52 @@ export default function Navbar() {
             >
               🔍
             </button>
+
           </div>
         </div>
 
-        {/* Right side */}
+
+        {/* =========================
+            RIGHT SIDE
+        ========================= */}
+
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
 
-          {/* Account */}
+          {/* =========================
+              ACCOUNT
+          ========================= */}
+
           {!user ? (
+
             <Link
               to="/login"
               className="hidden items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 sm:flex"
             >
-              <span className="text-lg">👤</span>
+
+              <span className="text-lg">
+                👤
+              </span>
 
               <span>
                 <span className="block text-[10px] font-medium text-slate-400">
                   Hello, sign in
                 </span>
+
                 Account
               </span>
+
             </Link>
+
           ) : (
+
             <div className="hidden items-center gap-2 rounded-lg px-3 py-2 sm:flex">
+
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700">
                 {user.name?.charAt(0)?.toUpperCase() || "U"}
               </span>
 
               <div>
+
                 <span className="block text-[10px] font-medium text-slate-400">
                   Hello
                 </span>
@@ -96,68 +126,124 @@ export default function Navbar() {
                 <span className="block max-w-28 truncate text-sm font-bold text-slate-800">
                   {user.name || "Account"}
                 </span>
+
               </div>
+
             </div>
+
           )}
 
-          {/* Orders */}
+
+          {/* =========================
+              CUSTOMER ORDERS
+          ========================= */}
+
           {user?.role === "CUSTOMER" && (
+
             <Link
               to="/orders"
               className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 sm:block"
             >
+
               <span className="block text-[10px] font-medium text-slate-400">
                 Track
               </span>
+
               Orders
+
             </Link>
+
           )}
 
-          {/* Cart */}
+
+          {/* =========================
+              CUSTOMER CART
+          ========================= */}
+
           {user?.role === "CUSTOMER" && (
+
             <Link
               to="/cart"
               className="relative flex items-center gap-1 rounded-lg px-3 py-2 text-slate-700 transition hover:bg-slate-100"
             >
-              <span className="text-2xl">🛒</span>
+
+              <span className="text-2xl">
+                🛒
+              </span>
 
               {cartCount > 0 && (
+
                 <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-bold text-white">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
+
               )}
 
               <span className="hidden text-sm font-bold sm:block">
                 Cart
               </span>
+
             </Link>
+
           )}
 
-          {/* Login */}
+
+          {/* =========================
+              LOGIN + REGISTER
+          ========================= */}
+
           {!user && (
-            <Link
-              to="/login"
-              className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700"
-            >
-              Login
-            </Link>
+
+            <div className="flex items-center gap-2">
+
+              <Link
+                to="/login"
+                className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                Login
+              </Link>
+
+              <Link
+                to="/register"
+                className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700"
+              >
+                Register
+              </Link>
+
+            </div>
+
           )}
 
-          {/* Logout */}
+
+          {/* =========================
+              LOGOUT
+          ========================= */}
+
           {user && (
+
             <button
               onClick={signOut}
               className="hidden rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 md:block"
             >
               Logout
             </button>
+
           )}
+
         </div>
+
       </div>
 
-      {/* Secondary navigation */}
+
+      {/* =========================
+          SECONDARY NAVIGATION
+      ========================= */}
+
       <div className="border-t border-slate-100 bg-slate-50">
+
         <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2 text-sm font-semibold lg:px-6">
+
+          {/* HOME */}
 
           <Link
             to="/"
@@ -166,12 +252,18 @@ export default function Navbar() {
             🏠 Home
           </Link>
 
+
+          {/* PRODUCTS */}
+
           <Link
             to="/products"
             className="whitespace-nowrap rounded-md px-3 py-1.5 text-slate-700 transition hover:bg-white hover:text-indigo-600"
           >
             🛍️ All Products
           </Link>
+
+
+          {/* STORES */}
 
           <Link
             to="/stores"
@@ -180,31 +272,57 @@ export default function Navbar() {
             🏪 Stores
           </Link>
 
+
+          {/* VENDOR DASHBOARD */}
+
           {user?.role === "VENDOR" && (
+
             <Link
               to="/vendor"
               className="whitespace-nowrap rounded-md px-3 py-1.5 text-slate-700 transition hover:bg-white hover:text-indigo-600"
             >
               📊 Vendor Dashboard
             </Link>
+
           )}
 
+
+          {/* ADMIN DASHBOARD */}
+
           {user?.role === "SUPER_ADMIN" && (
+
             <Link
               to="/admin"
               className="whitespace-nowrap rounded-md px-3 py-1.5 text-slate-700 transition hover:bg-white hover:text-indigo-600"
             >
               ⚙️ Admin Dashboard
             </Link>
+
           )}
 
+
+          {/* TRUST INDICATORS */}
+
           <div className="ml-auto hidden items-center gap-2 text-xs text-slate-500 lg:flex">
-            <span>✓ Secure payments</span>
-            <span>•</span>
-            <span>✓ Trusted stores</span>
+
+            <span>
+              ✓ Secure payments
+            </span>
+
+            <span>
+              •
+            </span>
+
+            <span>
+              ✓ Trusted stores
+            </span>
+
           </div>
+
         </div>
+
       </div>
+
     </header>
   );
 }

@@ -2,47 +2,63 @@ import Store from "../models/Store.js";
 
 export async function createStore(req, res) {
   try {
-    const { name, slug, description, logo, banner } = req.body;
+    const {
+      name,
+      slug,
+      description,
+      logo,
+      banner
+    } = req.body;
 
     if (!name || !slug) {
       return res.status(400).json({
-        message: "Store name and slug are required",
+        message:
+          "Store name and slug are required"
       });
     }
 
-    const normalizedSlug = slug.toLowerCase().trim();
+    const normalizedSlug =
+      slug.toLowerCase().trim();
 
     const exists = await Store.findOne({
-      slug: normalizedSlug,
+      slug: normalizedSlug
     });
 
     if (exists) {
       return res.status(409).json({
-        message: "Slug already exists",
+        message: "Slug already exists"
       });
     }
 
     const store = await Store.create({
       vendorId: req.user._id,
-      name,
+      name: name.trim(),
       slug: normalizedSlug,
-      description,
+      description: description?.trim() || "",
       logo,
-      banner,
+      banner
     });
 
-    res.status(201).json({ store });
+    res.status(201).json({
+      store
+    });
+
   } catch (error) {
-    console.error("CREATE STORE ERROR:", error);
+    console.error(
+      "CREATE STORE ERROR:",
+      error
+    );
 
     res.status(500).json({
-      message: "Failed to create store",
+      message: "Failed to create store"
     });
   }
 }
 
+
 /* =========================
    PUBLIC STORES
+
    Only ACTIVE stores whose
    vendor still exists and
    is ACTIVE
@@ -51,10 +67,15 @@ export async function createStore(req, res) {
 export async function listStores(req, res) {
   try {
     const stores = await Store.find({
-      status: "ACTIVE",
+      status: "ACTIVE"
     })
-      .populate("vendorId", "name email status")
-      .sort({ createdAt: -1 });
+      .populate(
+        "vendorId",
+        "name email status"
+      )
+      .sort({
+        createdAt: -1
+      });
 
     const validStores = stores.filter(
       (store) =>
@@ -63,19 +84,25 @@ export async function listStores(req, res) {
     );
 
     res.json({
-      stores: validStores,
+      stores: validStores
     });
+
   } catch (error) {
-    console.error("LIST STORES ERROR:", error);
+    console.error(
+      "LIST STORES ERROR:",
+      error
+    );
 
     res.status(500).json({
-      message: "Failed to load stores",
+      message: "Failed to load stores"
     });
   }
 }
 
+
 /* =========================
    VENDOR STORES
+
    Only logged-in vendor's
    stores
 ========================= */
@@ -83,14 +110,20 @@ export async function listStores(req, res) {
 export async function listVendorStores(req, res) {
   try {
     const stores = await Store.find({
-      vendorId: req.user._id,
+      vendorId: req.user._id
     })
-      .populate("vendorId", "name email status")
-      .sort({ createdAt: -1 });
+      .populate(
+        "vendorId",
+        "name email status"
+      )
+      .sort({
+        createdAt: -1
+      });
 
     res.json({
-      stores,
+      stores
     });
+
   } catch (error) {
     console.error(
       "LIST VENDOR STORES ERROR:",
@@ -98,24 +131,33 @@ export async function listVendorStores(req, res) {
     );
 
     res.status(500).json({
-      message: "Failed to load your stores",
+      message:
+        "Failed to load your stores"
     });
   }
 }
 
+
 /* =========================
    STORE BY SLUG
+
+   Only ACTIVE stores whose
+   vendor is ACTIVE
 ========================= */
 
-export async function getStoreBySlug(req, res) {
+export async function getStoreBySlug(
+  req,
+  res
+) {
   try {
-    const store = await Store.findOne({
-      slug: req.params.slug,
-      status: "ACTIVE",
-    }).populate(
-      "vendorId",
-      "name email status"
-    );
+    const store =
+      await Store.findOne({
+        slug: req.params.slug,
+        status: "ACTIVE"
+      }).populate(
+        "vendorId",
+        "name email status"
+      );
 
     if (
       !store ||
@@ -123,11 +165,14 @@ export async function getStoreBySlug(req, res) {
       store.vendorId.status !== "ACTIVE"
     ) {
       return res.status(404).json({
-        message: "Store not found",
+        message: "Store not found"
       });
     }
 
-    res.json({ store });
+    res.json({
+      store
+    });
+
   } catch (error) {
     console.error(
       "GET STORE BY SLUG ERROR:",
@@ -135,64 +180,142 @@ export async function getStoreBySlug(req, res) {
     );
 
     res.status(500).json({
-      message: "Failed to load store",
+      message: "Failed to load store"
     });
   }
 }
 
+
 /* =========================
    UPDATE STORE
+
+   Vendor can update only
+   their own store
 ========================= */
 
-export async function updateStore(req, res) {
+export async function updateStore(
+  req,
+  res
+) {
   try {
-    const store = await Store.findOne({
-      _id: req.params.id,
-      vendorId: req.user._id,
-    });
+    const store =
+      await Store.findOne({
+        _id: req.params.id,
+        vendorId: req.user._id
+      });
 
     if (!store) {
       return res.status(404).json({
-        message: "Store not found",
+        message:
+          "Store not found or you do not own this store"
       });
     }
 
-    const allowedFields = [
-      "name",
-      "slug",
-      "description",
-      "logo",
-      "banner",
-    ];
+    const {
+      name,
+      slug,
+      description,
+      logo,
+      banner
+    } = req.body;
 
-    allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        store[field] = req.body[field];
-      }
-    });
+    /* =========================
+       VALIDATION
+    ========================= */
 
-    if (req.body.slug) {
-      const normalizedSlug =
-        req.body.slug.toLowerCase().trim();
-
-      const existingStore =
-        await Store.findOne({
-          slug: normalizedSlug,
-          _id: { $ne: store._id },
-        });
-
-      if (existingStore) {
-        return res.status(409).json({
-          message: "Slug already exists",
-        });
-      }
-
-      store.slug = normalizedSlug;
+    if (!name || !slug) {
+      return res.status(400).json({
+        message:
+          "Store name and slug are required"
+      });
     }
+
+    const normalizedName =
+      name.trim();
+
+    const normalizedSlug =
+      slug.toLowerCase().trim();
+
+    if (!normalizedName) {
+      return res.status(400).json({
+        message:
+          "Store name cannot be empty"
+      });
+    }
+
+    if (!normalizedSlug) {
+      return res.status(400).json({
+        message:
+          "Store slug cannot be empty"
+      });
+    }
+
+
+    /* =========================
+       CHECK SLUG DUPLICATE
+
+       Ignore the current store
+    ========================= */
+
+    const existingStore =
+      await Store.findOne({
+        slug: normalizedSlug,
+        _id: {
+          $ne: store._id
+        }
+      });
+
+    if (existingStore) {
+      return res.status(409).json({
+        message:
+          "Slug already exists"
+      });
+    }
+
+
+    /* =========================
+       UPDATE STORE
+
+       Ownership fields such as
+       vendorId are NOT changed.
+    ========================= */
+
+    store.name =
+      normalizedName;
+
+    store.slug =
+      normalizedSlug;
+
+    store.description =
+      description?.trim() || "";
+
+    if (logo !== undefined) {
+      store.logo = logo;
+    }
+
+    if (banner !== undefined) {
+      store.banner = banner;
+    }
+
+
+    /* =========================
+       SAVE
+    ========================= */
 
     await store.save();
 
-    res.json({ store });
+
+    /* =========================
+       RESPONSE
+    ========================= */
+
+    res.json({
+      message:
+        "Store updated successfully",
+
+      store
+    });
+
   } catch (error) {
     console.error(
       "UPDATE STORE ERROR:",
@@ -200,32 +323,43 @@ export async function updateStore(req, res) {
     );
 
     res.status(500).json({
-      message: "Failed to update store",
+      message:
+        "Failed to update store"
     });
   }
 }
 
+
 /* =========================
    DELETE STORE
+
+   Only the vendor who owns
+   the store can delete it.
 ========================= */
 
-export async function deleteStore(req, res) {
+export async function deleteStore(
+  req,
+  res
+) {
   try {
     const store =
       await Store.findOneAndDelete({
         _id: req.params.id,
-        vendorId: req.user._id,
+        vendorId: req.user._id
       });
 
     if (!store) {
       return res.status(404).json({
-        message: "Store not found",
+        message:
+          "Store not found or you do not own this store"
       });
     }
 
     res.json({
-      message: "Store deleted successfully",
+      message:
+        "Store deleted successfully"
     });
+
   } catch (error) {
     console.error(
       "DELETE STORE ERROR:",
@@ -233,7 +367,8 @@ export async function deleteStore(req, res) {
     );
 
     res.status(500).json({
-      message: "Failed to delete store",
+      message:
+        "Failed to delete store"
     });
   }
 }
