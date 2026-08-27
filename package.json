@@ -1,0 +1,26 @@
+{
+  "name": "shopsphere-monorepo",
+  "version": "1.0.0",
+  "description": "ShopSphere Multi-Tenant SaaS E-Commerce Platform",
+  "scripts": {
+    "build": "npm run build --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "build:backend": "echo Backend is Node.js ready",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "start": "npm start --prefix backend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "seed": "node backend/seed.js"
+  },
+  "keywords": [
+    "shopsphere",
+    "ecommerce",
+    "saas",
+    "multi-tenant",
+    "react",
+    "express",
+    "mongodb"
+  ],
+  "author": "ShopSphere Team",
+  "license": "MIT"
+}
