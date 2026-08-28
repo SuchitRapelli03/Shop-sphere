@@ -9,6 +9,7 @@ export default function Cart() {
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [removingProductId, setRemovingProductId] = useState(null);
+  const [updatingProductId, setUpdatingProductId] = useState(null);
   const [error, setError] = useState("");
 
   const [shippingAddress, setShippingAddress] = useState({
@@ -55,6 +56,11 @@ export default function Cart() {
     }
   }, [user, dispatch]);
 
+
+  /* =========================
+     ADDRESS
+  ========================= */
+
   function handleAddressChange(e) {
     const { name, value } = e.target;
 
@@ -63,6 +69,7 @@ export default function Cart() {
       [name]: value,
     }));
   }
+
 
   function validateShippingAddress() {
     const {
@@ -96,6 +103,54 @@ export default function Cart() {
     return "";
   }
 
+
+  /* =========================
+     UPDATE QUANTITY
+  ========================= */
+
+  async function updateQuantity(productId, newQuantity) {
+    if (newQuantity < 1) {
+      return;
+    }
+
+    try {
+      setUpdatingProductId(productId);
+      setError("");
+
+      const response = await api.put(
+        `/cart/items/${productId}`,
+        {
+          quantity: newQuantity,
+        }
+      );
+
+      const updatedCart = response.data.cart;
+
+      setLocal(updatedCart);
+
+      dispatch(
+        setCart(updatedCart?.items || [])
+      );
+    } catch (error) {
+      console.error(
+        "UPDATE CART QUANTITY ERROR:",
+        error
+      );
+
+      setError(
+        error.response?.data?.message ||
+          "Unable to update quantity."
+      );
+    } finally {
+      setUpdatingProductId(null);
+    }
+  }
+
+
+  /* =========================
+     REMOVE ITEM
+  ========================= */
+
   async function removeItem(productId) {
     const confirmed = window.confirm(
       "Are you sure you want to remove this product from your cart?"
@@ -121,7 +176,10 @@ export default function Cart() {
         setCart(updatedCart?.items || [])
       );
     } catch (error) {
-      console.error("REMOVE CART ITEM ERROR:", error);
+      console.error(
+        "REMOVE CART ITEM ERROR:",
+        error
+      );
 
       setError(
         error.response?.data?.message ||
@@ -131,6 +189,11 @@ export default function Cart() {
       setRemovingProductId(null);
     }
   }
+
+
+  /* =========================
+     RAZORPAY
+  ========================= */
 
   async function loadRazorpayScript() {
     if (window.Razorpay) {
@@ -150,8 +213,14 @@ export default function Cart() {
     });
   }
 
+
+  /* =========================
+     CHECKOUT
+  ========================= */
+
   async function checkout() {
-    const addressError = validateShippingAddress();
+    const addressError =
+      validateShippingAddress();
 
     if (addressError) {
       alert(addressError);
@@ -162,7 +231,8 @@ export default function Cart() {
       setPaymentLoading(true);
       setError("");
 
-      const scriptLoaded = await loadRazorpayScript();
+      const scriptLoaded =
+        await loadRazorpayScript();
 
       if (!scriptLoaded) {
         throw new Error(
@@ -188,7 +258,8 @@ export default function Cart() {
             user?.name ||
             "",
           email: user?.email || "",
-          contact: shippingAddress.phone || "",
+          contact:
+            shippingAddress.phone || "",
         },
 
         theme: {
@@ -225,7 +296,8 @@ export default function Cart() {
 
             dispatch(
               setCart(
-                cartResponse.data.cart?.items || []
+                cartResponse.data.cart?.items ||
+                  []
               )
             );
 
@@ -274,7 +346,10 @@ export default function Cart() {
 
       razorpay.open();
     } catch (error) {
-      console.error("CHECKOUT ERROR:", error);
+      console.error(
+        "CHECKOUT ERROR:",
+        error
+      );
 
       alert(
         error.response?.data?.message ||
@@ -285,6 +360,11 @@ export default function Cart() {
       setPaymentLoading(false);
     }
   }
+
+
+  /* =========================
+     LOGIN
+  ========================= */
 
   if (!user) {
     return (
@@ -298,6 +378,11 @@ export default function Cart() {
     );
   }
 
+
+  /* =========================
+     LOADING
+  ========================= */
+
   if (loading) {
     return (
       <main className="mx-auto max-w-4xl px-6 py-16">
@@ -307,6 +392,11 @@ export default function Cart() {
       </main>
     );
   }
+
+
+  /* =========================
+     ERROR
+  ========================= */
 
   if (error && !cart?.items?.length) {
     return (
@@ -320,6 +410,7 @@ export default function Cart() {
     );
   }
 
+
   const items = cart?.items || [];
 
   const total = items.reduce(
@@ -330,11 +421,14 @@ export default function Cart() {
     0
   );
 
+
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
+
       <h1 className="text-4xl font-black">
         Your Cart
       </h1>
+
 
       {error && (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
@@ -342,8 +436,10 @@ export default function Cart() {
         </div>
       )}
 
+
       {items.length === 0 ? (
         <div className="mt-8 rounded-2xl border bg-white p-8 text-center">
+
           <h2 className="text-xl font-bold">
             Your cart is empty
           </h2>
@@ -351,46 +447,145 @@ export default function Cart() {
           <p className="mt-2 text-slate-600">
             Go to Products and add something to your cart.
           </p>
+
         </div>
       ) : (
         <>
-          {/* CART ITEMS */}
+          {/* =========================
+              CART ITEMS
+          ========================= */}
+
           <section className="mt-8">
+
             <h2 className="text-2xl font-black">
               Cart Items
             </h2>
 
+
             <div className="mt-4 space-y-4">
+
               {items.map((item) => {
+
                 const productId =
                   item.productId?._id;
+
+                const productStock =
+                  item.productId?.stock ?? 0;
+
+                const isUpdating =
+                  updatingProductId ===
+                  productId;
+
+                const isRemoving =
+                  removingProductId ===
+                  productId;
 
                 return (
                   <div
                     key={productId}
-                    className="flex flex-col gap-4 rounded-xl border bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-5 rounded-xl border bg-white p-5 sm:flex-row sm:items-center sm:justify-between"
                   >
+
+                    {/* PRODUCT DETAILS */}
+
                     <div className="flex-1">
+
                       <h3 className="font-bold">
                         {item.productId?.name}
                       </h3>
 
                       <p className="mt-1 text-sm text-slate-500">
-                        Quantity: {item.quantity}
-                      </p>
-
-                      <p className="mt-1 text-sm text-slate-500">
                         Price: ₹
                         {item.productId?.price || 0}
                       </p>
+
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <span className="font-bold">
+
+                    {/* QUANTITY + TOTAL */}
+
+                    <div className="flex flex-wrap items-center gap-4">
+
+                      {/* QUANTITY SELECTOR */}
+
+                      <div className="flex items-center rounded-lg border border-slate-300">
+
+                        {/* MINUS */}
+
+                        <button
+                          type="button"
+                          disabled={
+                            isUpdating ||
+                            isRemoving ||
+                            paymentLoading
+                          }
+                          onClick={() => {
+
+                            if (
+                              item.quantity === 1
+                            ) {
+                              removeItem(
+                                productId
+                              );
+                            } else {
+                              updateQuantity(
+                                productId,
+                                item.quantity - 1
+                              );
+                            }
+
+                          }}
+                          className="flex h-10 w-10 items-center justify-center text-xl font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          −
+                        </button>
+
+
+                        {/* QUANTITY */}
+
+                        <div className="flex h-10 min-w-12 items-center justify-center border-x border-slate-300 px-3 font-bold text-slate-900">
+                          {isUpdating
+                            ? "..."
+                            : item.quantity}
+                        </div>
+
+
+                        {/* PLUS */}
+
+                        <button
+                          type="button"
+                          disabled={
+                            isUpdating ||
+                            isRemoving ||
+                            paymentLoading ||
+                            item.quantity >=
+                              productStock
+                          }
+                          onClick={() =>
+                            updateQuantity(
+                              productId,
+                              item.quantity + 1
+                            )
+                          }
+                          className="flex h-10 w-10 items-center justify-center text-xl font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          +
+                        </button>
+
+                      </div>
+
+
+                      {/* ITEM TOTAL */}
+
+                      <span className="min-w-20 text-right font-bold">
                         ₹
-                        {(item.productId?.price || 0) *
+                        {(item.productId?.price ||
+                          0) *
                           item.quantity}
                       </span>
+
+
+                      {/* REMOVE */}
 
                       <button
                         type="button"
@@ -398,27 +593,36 @@ export default function Cart() {
                           removeItem(productId)
                         }
                         disabled={
-                          removingProductId ===
-                          productId ||
+                          isRemoving ||
+                          isUpdating ||
                           paymentLoading
                         }
                         className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {removingProductId ===
-                        productId
+                        {isRemoving
                           ? "Removing..."
                           : "Remove"}
                       </button>
+
                     </div>
+
                   </div>
                 );
               })}
+
             </div>
+
           </section>
 
-          {/* DELIVERY DETAILS */}
+
+          {/* =========================
+              DELIVERY DETAILS
+          ========================= */}
+
           <section className="mt-10 rounded-2xl border bg-white p-6 shadow-sm">
+
             <div>
+
               <p className="font-semibold text-indigo-600">
                 Delivery
               </p>
@@ -428,14 +632,18 @@ export default function Cart() {
               </h2>
 
               <p className="mt-2 text-sm text-slate-500">
-                Enter the details where you want your order
-                delivered.
+                Enter the details where you want your order delivered.
               </p>
+
             </div>
 
+
             <div className="mt-6 grid gap-4 md:grid-cols-2">
+
               {/* FULL NAME */}
+
               <div className="md:col-span-2">
+
                 <label className="text-sm font-semibold text-slate-700">
                   Full Name
                 </label>
@@ -448,10 +656,14 @@ export default function Cart() {
                   placeholder="Enter recipient name"
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
+
               </div>
 
+
               {/* PHONE */}
+
               <div>
+
                 <label className="text-sm font-semibold text-slate-700">
                   Phone Number
                 </label>
@@ -465,10 +677,14 @@ export default function Cart() {
                   placeholder="10-digit mobile number"
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
+
               </div>
 
+
               {/* PINCODE */}
+
               <div>
+
                 <label className="text-sm font-semibold text-slate-700">
                   Pincode
                 </label>
@@ -482,10 +698,14 @@ export default function Cart() {
                   placeholder="6-digit pincode"
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
+
               </div>
 
+
               {/* ADDRESS */}
+
               <div className="md:col-span-2">
+
                 <label className="text-sm font-semibold text-slate-700">
                   Address
                 </label>
@@ -498,10 +718,14 @@ export default function Cart() {
                   placeholder="House number, street, area, landmark..."
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
+
               </div>
 
+
               {/* CITY */}
+
               <div>
+
                 <label className="text-sm font-semibold text-slate-700">
                   City
                 </label>
@@ -514,10 +738,14 @@ export default function Cart() {
                   placeholder="City"
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
+
               </div>
 
+
               {/* STATE */}
+
               <div>
+
                 <label className="text-sm font-semibold text-slate-700">
                   State
                 </label>
@@ -530,19 +758,30 @@ export default function Cart() {
                   placeholder="State"
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
+
               </div>
+
             </div>
+
           </section>
 
-          {/* TOTAL + PAYMENT */}
+
+          {/* =========================
+              TOTAL + PAYMENT
+          ========================= */}
+
           <section className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
+
             <div className="flex items-center justify-between text-2xl font-black">
+
               <span>Total</span>
 
               <span className="text-indigo-600">
                 ₹{total}
               </span>
+
             </div>
+
 
             <button
               onClick={checkout}
@@ -554,13 +793,16 @@ export default function Cart() {
                 : "Pay with Razorpay"}
             </button>
 
+
             <p className="mt-3 text-center text-xs text-slate-500">
-              Your delivery details will be securely attached
-              to this order.
+              Your delivery details will be securely attached to this order.
             </p>
+
           </section>
+
         </>
       )}
+
     </main>
   );
 }
