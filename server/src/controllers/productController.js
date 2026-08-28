@@ -141,47 +141,50 @@ export async function listProducts(req, res) {
       itemsPerPage;
 
     const products =
-      await Product.find(filter)
-        .populate(
-          "storeId",
-          "name slug status vendorId"
-        )
-        .populate(
-          "vendorId",
-          "name email status"
-        )
-        .sort(sortOption)
-        .skip(skip)
-        .limit(itemsPerPage);
+  await Product.find(filter)
+    .populate(
+      "storeId",
+      "name slug status vendorId"
+    )
+    .populate(
+      "vendorId",
+      "name email status"
+    )
+    .sort(sortOption);
 
-    const validProducts =
-      products.filter(
-        (product) =>
-          product.storeId &&
-          product.storeId.status ===
-            "ACTIVE" &&
-          product.vendorId &&
-          product.vendorId.status ===
-            "ACTIVE" &&
-          product.storeId.vendorId &&
-          product.storeId.vendorId.toString() ===
-            product.vendorId._id.toString()
-      );
+const validProducts =
+  products.filter(
+    (product) =>
+      product.storeId &&
+      product.storeId.status === "ACTIVE" &&
+      product.vendorId &&
+      product.vendorId.status === "ACTIVE" &&
+      product.storeId.vendorId &&
+      product.storeId.vendorId.toString() ===
+        product.vendorId._id.toString()
+  );
 
-    res.json({
-      products: validProducts,
+const total = validProducts.length;
 
-      pagination: {
-        page: currentPage,
-        limit: itemsPerPage,
-        total: validProducts.length,
-        pages: Math.ceil(
-          validProducts.length /
-            itemsPerPage
-        ),
-      },
-    });
-  } catch (error) {
+const paginatedProducts =
+  validProducts.slice(
+    skip,
+    skip + itemsPerPage
+  );
+
+res.json({
+  products: paginatedProducts,
+
+  pagination: {
+    page: currentPage,
+    limit: itemsPerPage,
+    total,
+    pages: Math.ceil(
+      total / itemsPerPage
+    ),
+  },
+});
+   } catch (error) {
     console.error(
       "PRODUCT SEARCH ERROR:",
       error
