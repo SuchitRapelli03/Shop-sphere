@@ -25,6 +25,10 @@ export default function Cart() {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
 
+  /* =========================
+     LOAD CART
+  ========================= */
+
   useEffect(() => {
     async function loadCart() {
       try {
@@ -36,7 +40,10 @@ export default function Cart() {
         const cartData = response.data.cart;
 
         setLocal(cartData);
-        dispatch(setCart(cartData?.items || []));
+
+        dispatch(
+          setCart(cartData?.items || [])
+        );
       } catch (error) {
         console.error("CART ERROR:", error);
 
@@ -108,7 +115,10 @@ export default function Cart() {
      UPDATE QUANTITY
   ========================= */
 
-  async function updateQuantity(productId, newQuantity) {
+  async function updateQuantity(
+    productId,
+    newQuantity
+  ) {
     if (newQuantity < 1) {
       return;
     }
@@ -124,7 +134,8 @@ export default function Cart() {
         }
       );
 
-      const updatedCart = response.data.cart;
+      const updatedCart =
+        response.data.cart;
 
       setLocal(updatedCart);
 
@@ -168,7 +179,8 @@ export default function Cart() {
         `/cart/items/${productId}`
       );
 
-      const updatedCart = response.data.cart;
+      const updatedCart =
+        response.data.cart;
 
       setLocal(updatedCart);
 
@@ -201,13 +213,17 @@ export default function Cart() {
     }
 
     return new Promise((resolve) => {
-      const script = document.createElement("script");
+      const script =
+        document.createElement("script");
 
       script.src =
         "https://checkout.razorpay.com/v1/checkout.js";
 
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
+      script.onload = () =>
+        resolve(true);
+
+      script.onerror = () =>
+        resolve(false);
 
       document.body.appendChild(script);
     });
@@ -240,9 +256,10 @@ export default function Cart() {
         );
       }
 
-      const { data } = await api.post(
-        "/payments/create-razorpay-order"
-      );
+      const { data } =
+        await api.post(
+          "/payments/create-razorpay-order"
+        );
 
       const options = {
         key: data.keyId,
@@ -250,14 +267,18 @@ export default function Cart() {
         currency: data.currency,
         name: "ShopSphere",
         description: "ShopSphere Order",
-        order_id: data.razorpayOrderId,
+        order_id:
+          data.razorpayOrderId,
 
         prefill: {
           name:
             shippingAddress.fullName ||
             user?.name ||
             "",
-          email: user?.email || "",
+
+          email:
+            user?.email || "",
+
           contact:
             shippingAddress.phone || "",
         },
@@ -266,42 +287,52 @@ export default function Cart() {
           color: "#4f46e5",
         },
 
-        handler: async function (response) {
+        handler: async function (
+          response
+        ) {
           try {
             setPaymentLoading(true);
 
             const verificationResponse =
-              await api.post("/payments/verify", {
-                razorpay_order_id:
-                  response.razorpay_order_id,
+              await api.post(
+                "/payments/verify",
+                {
+                  razorpay_order_id:
+                    response.razorpay_order_id,
 
-                razorpay_payment_id:
-                  response.razorpay_payment_id,
+                  razorpay_payment_id:
+                    response.razorpay_payment_id,
 
-                razorpay_signature:
-                  response.razorpay_signature,
+                  razorpay_signature:
+                    response.razorpay_signature,
 
-                shippingAddress,
-              });
+                  shippingAddress,
+                }
+              );
 
             alert(
-              verificationResponse.data.message ||
+              verificationResponse.data
+                .message ||
                 "Payment successful!"
             );
 
             const cartResponse =
               await api.get("/cart");
 
-            setLocal(cartResponse.data.cart);
+            setLocal(
+              cartResponse.data.cart
+            );
 
             dispatch(
               setCart(
-                cartResponse.data.cart?.items ||
-                  []
+                cartResponse.data.cart
+                  ?.items || []
               )
             );
 
-            navigate("/checkout/success");
+            navigate(
+              "/checkout/success"
+            );
           } catch (error) {
             console.error(
               "PAYMENT VERIFICATION ERROR:",
@@ -309,7 +340,8 @@ export default function Cart() {
             );
 
             alert(
-              error.response?.data?.message ||
+              error.response?.data
+                ?.message ||
                 "Payment verification failed."
             );
           } finally {
@@ -370,9 +402,11 @@ export default function Cart() {
     return (
       <main className="mx-auto max-w-4xl px-6 py-16">
         <div className="rounded-2xl border bg-white p-8 text-center">
+
           <h1 className="text-2xl font-bold">
             Please login as a customer
           </h1>
+
         </div>
       </main>
     );
@@ -386,9 +420,11 @@ export default function Cart() {
   if (loading) {
     return (
       <main className="mx-auto max-w-4xl px-6 py-16">
+
         <h1 className="text-2xl font-bold">
           Loading cart...
         </h1>
+
       </main>
     );
   }
@@ -398,14 +434,21 @@ export default function Cart() {
      ERROR
   ========================= */
 
-  if (error && !cart?.items?.length) {
+  if (
+    error &&
+    !cart?.items?.length
+  ) {
     return (
       <main className="mx-auto max-w-4xl px-6 py-16">
+
         <div className="rounded-2xl border bg-white p-8 text-center">
+
           <h1 className="text-2xl font-bold text-red-600">
             {error}
           </h1>
+
         </div>
+
       </main>
     );
   }
@@ -425,10 +468,16 @@ export default function Cart() {
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
 
+      {/* =========================
+          HEADER
+      ========================= */}
+
       <h1 className="text-4xl font-black">
         Your Cart
       </h1>
 
+
+      {/* ERROR */}
 
       {error && (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
@@ -438,6 +487,7 @@ export default function Cart() {
 
 
       {items.length === 0 ? (
+
         <div className="mt-8 rounded-2xl border bg-white p-8 text-center">
 
           <h2 className="text-xl font-bold">
@@ -449,8 +499,11 @@ export default function Cart() {
           </p>
 
         </div>
+
       ) : (
+
         <>
+
           {/* =========================
               CART ITEMS
           ========================= */}
@@ -480,6 +533,7 @@ export default function Cart() {
                   removingProductId ===
                   productId;
 
+
                 return (
                   <div
                     key={productId}
@@ -496,7 +550,8 @@ export default function Cart() {
 
                       <p className="mt-1 text-sm text-slate-500">
                         Price: ₹
-                        {item.productId?.price || 0}
+                        {item.productId?.price ||
+                          0}
                       </p>
 
                     </div>
@@ -541,12 +596,28 @@ export default function Cart() {
                         </button>
 
 
-                        {/* QUANTITY */}
+                        {/* QUANTITY / LOADING */}
 
                         <div className="flex h-10 min-w-12 items-center justify-center border-x border-slate-300 px-3 font-bold text-slate-900">
-                          {isUpdating
-                            ? "..."
-                            : item.quantity}
+
+                          {isUpdating ? (
+
+                            <div className="flex items-center gap-1">
+
+                              <span className="h-2 w-2 animate-bounce rounded-full bg-indigo-600"></span>
+
+                              <span className="h-2 w-2 animate-bounce rounded-full bg-indigo-600 [animation-delay:150ms]"></span>
+
+                              <span className="h-2 w-2 animate-bounce rounded-full bg-indigo-600 [animation-delay:300ms]"></span>
+
+                            </div>
+
+                          ) : (
+
+                            item.quantity
+
+                          )}
+
                         </div>
 
 
@@ -578,10 +649,12 @@ export default function Cart() {
                       {/* ITEM TOTAL */}
 
                       <span className="min-w-20 text-right font-bold">
+
                         ₹
                         {(item.productId?.price ||
                           0) *
                           item.quantity}
+
                       </span>
 
 
@@ -651,8 +724,12 @@ export default function Cart() {
                 <input
                   name="fullName"
                   type="text"
-                  value={shippingAddress.fullName}
-                  onChange={handleAddressChange}
+                  value={
+                    shippingAddress.fullName
+                  }
+                  onChange={
+                    handleAddressChange
+                  }
                   placeholder="Enter recipient name"
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
@@ -672,8 +749,12 @@ export default function Cart() {
                   name="phone"
                   type="tel"
                   maxLength="10"
-                  value={shippingAddress.phone}
-                  onChange={handleAddressChange}
+                  value={
+                    shippingAddress.phone
+                  }
+                  onChange={
+                    handleAddressChange
+                  }
                   placeholder="10-digit mobile number"
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
@@ -693,8 +774,12 @@ export default function Cart() {
                   name="pincode"
                   type="text"
                   maxLength="6"
-                  value={shippingAddress.pincode}
-                  onChange={handleAddressChange}
+                  value={
+                    shippingAddress.pincode
+                  }
+                  onChange={
+                    handleAddressChange
+                  }
                   placeholder="6-digit pincode"
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
@@ -713,8 +798,12 @@ export default function Cart() {
                 <textarea
                   name="addressLine"
                   rows="3"
-                  value={shippingAddress.addressLine}
-                  onChange={handleAddressChange}
+                  value={
+                    shippingAddress.addressLine
+                  }
+                  onChange={
+                    handleAddressChange
+                  }
                   placeholder="House number, street, area, landmark..."
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
@@ -733,8 +822,12 @@ export default function Cart() {
                 <input
                   name="city"
                   type="text"
-                  value={shippingAddress.city}
-                  onChange={handleAddressChange}
+                  value={
+                    shippingAddress.city
+                  }
+                  onChange={
+                    handleAddressChange
+                  }
                   placeholder="City"
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
@@ -753,8 +846,12 @@ export default function Cart() {
                 <input
                   name="state"
                   type="text"
-                  value={shippingAddress.state}
-                  onChange={handleAddressChange}
+                  value={
+                    shippingAddress.state
+                  }
+                  onChange={
+                    handleAddressChange
+                  }
                   placeholder="State"
                   className="mt-2 w-full rounded-xl border p-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                 />
@@ -801,6 +898,7 @@ export default function Cart() {
           </section>
 
         </>
+
       )}
 
     </main>
