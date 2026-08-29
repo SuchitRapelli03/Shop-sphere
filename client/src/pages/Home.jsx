@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api.js";
 
@@ -8,19 +8,22 @@ export default function Home() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingStores, setLoadingStores] = useState(true);
 
-  // Fetch products
+  /* =========================================================
+     FETCH PRODUCTS
+  ========================================================= */
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const response = await api.get("/products");
 
-        const productData =
+        const data =
           response.data?.products ||
           response.data?.data ||
           response.data ||
           [];
 
-        setProducts(Array.isArray(productData) ? productData : []);
+        setProducts(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Failed to load products:", error);
         setProducts([]);
@@ -32,19 +35,22 @@ export default function Home() {
     fetchProducts();
   }, []);
 
-  // Fetch stores
+  /* =========================================================
+     FETCH STORES
+  ========================================================= */
+
   useEffect(() => {
     const fetchStores = async () => {
       try {
         const response = await api.get("/stores");
 
-        const storeData =
+        const data =
           response.data?.stores ||
           response.data?.data ||
           response.data ||
           [];
 
-        setStores(Array.isArray(storeData) ? storeData : []);
+        setStores(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Failed to load stores:", error);
         setStores([]);
@@ -56,347 +62,483 @@ export default function Home() {
     fetchStores();
   }, []);
 
+  /* =========================================================
+     CATEGORIES
+  ========================================================= */
+
   const categories = [
+    {
+      name: "Electronics",
+      icon: "🎧",
+      color: "bg-[#d8edf0]",
+    },
     {
       name: "Fashion",
       icon: "👕",
-      description: "Trending clothes & accessories",
-    },
-    {
-      name: "Electronics",
-      icon: "💻",
-      description: "Latest gadgets & technology",
-    },
-    {
-      name: "Shoes",
-      icon: "👟",
-      description: "Sneakers & footwear",
+      color: "bg-[#e8ddd2]",
     },
     {
       name: "Beauty",
-      icon: "✨",
-      description: "Beauty & personal care",
+      icon: "💄",
+      color: "bg-[#e4dce5]",
+    },
+    {
+      name: "Grocery",
+      icon: "🥑",
+      color: "bg-[#dce8dc]",
     },
     {
       name: "Home",
       icon: "🏠",
-      description: "Everything for your home",
+      color: "bg-[#e5dfd6]",
     },
     {
       name: "Sports",
       icon: "⚽",
-      description: "Sports & fitness products",
+      color: "bg-[#d9e7e3]",
+    },
+    {
+      name: "Shoes",
+      icon: "👟",
+      color: "bg-[#e8ddd5]",
+    },
+    {
+      name: "Accessories",
+      icon: "⌚",
+      color: "bg-[#d9e9ec]",
     },
   ];
 
+  const featuredProducts = useMemo(
+    () => products.slice(0, 8),
+    [products]
+  );
+
+  const trendingProducts = useMemo(
+    () => products.slice(8, 16),
+    [products]
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <main className="min-h-screen bg-[#f3efe8] text-[#30251f]">
 
-      {/* ================= HERO SECTION ================= */}
-      <section className="relative overflow-hidden bg-slate-950 text-white">
-        <div className="absolute inset-0">
-          <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-indigo-600/30 blur-3xl" />
-          <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-purple-600/20 blur-3xl" />
-        </div>
+      {/* =====================================================
+          OFFER STRIP
+      ===================================================== */}
 
-        <div className="relative mx-auto grid max-w-7xl gap-12 px-6 py-20 md:grid-cols-2 md:items-center lg:px-8 lg:py-28">
+      <div className="bg-[#047857] px-4 py-2 text-center text-[11px] font-bold tracking-wide text-[#f7f0e7]">
+        ✨ One marketplace · Multiple stores · Endless discoveries
+      </div>
 
-          {/* Hero Text */}
-          <div>
-            <div className="mb-5 inline-flex items-center rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-slate-200 backdrop-blur">
-              🚀 Welcome to ShopSphere
-            </div>
 
-            <h1 className="text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
-              Discover.
-              <span className="block text-indigo-400">
-                Shop.
+      {/* =====================================================
+          HERO
+      ===================================================== */}
+
+      <section className="border-b border-[#d8d0c5] bg-[#dcecef]">
+
+        <div className="mx-auto max-w-7xl px-5 py-9 lg:px-8 lg:py-11">
+
+          <div className="grid gap-7 lg:grid-cols-[1.15fr_.85fr] lg:items-center">
+
+            {/* HERO COPY */}
+
+            <div>
+
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#a8cbd0] bg-[#edf7f8] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#557d84]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#638f97]" />
+                Welcome to ShopSphere
               </span>
-              Enjoy.
-            </h1>
 
-            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
-              Explore products from multiple stores, discover new brands,
-              and enjoy a simple shopping experience — all in one place.
-            </p>
+              <h1 className="mt-4 max-w-2xl text-4xl font-black leading-[1.03] tracking-tight text-[#022C22] sm:text-5xl">
 
-            <div className="mt-8 flex flex-wrap gap-4">
+                Everything you want.
+
+                <span className="block text-[#047857]">
+                  One shopping sphere.
+                </span>
+
+              </h1>
+
+              <p className="mt-4 max-w-xl text-sm leading-6 text-[#6d6259] sm:text-base">
+                Discover products from different stores, compare your
+                favourites and shop everything from one connected marketplace.
+              </p>
+
+
+              {/* SEARCH BAR */}
+
               <Link
                 to="/products"
-                className="rounded-xl bg-indigo-500 px-6 py-3 font-bold text-white transition hover:bg-indigo-400"
+                className="mt-6 flex max-w-2xl items-center gap-3 rounded-xl border border-[#bdd6da] bg-[#edf7f8] px-4 py-3.5 shadow-sm transition hover:border-[#91bbc2] hover:shadow-md"
               >
-                Shop Products →
+
+                <span className="text-lg">
+                  🔎
+                </span>
+
+                <span className="flex-1 text-xs font-semibold text-[#82766e] sm:text-sm">
+                  Search products, stores & categories
+                </span>
+
+                <span className="rounded-lg bg-[#674936] px-4 py-2 text-[10px] font-black uppercase tracking-wide text-[#f7f0e8]">
+                  Explore
+                </span>
+
               </Link>
 
-              <Link
-                to="/stores"
-                className="rounded-xl border border-white/20 bg-white/10 px-6 py-3 font-bold text-white backdrop-blur transition hover:bg-white/20"
-              >
-                Explore Stores
-              </Link>
+
+              {/* QUICK CATEGORIES */}
+
+              <div className="mt-5 flex flex-wrap gap-2">
+
+                {["Electronics", "Fashion", "Beauty", "Home", "Sports"].map(
+                  (category) => (
+                    <Link
+                      key={category}
+                      to={`/products?category=${encodeURIComponent(category)}`}
+                      className="rounded-full border border-[#b8d1d5] bg-[#e9f3f4] px-3 py-1.5 text-[10px] font-bold text-[#55767d] transition hover:border-[#8ebbc2] hover:bg-[#d9ebee]"
+                    >
+                      {category}
+                    </Link>
+                  )
+                )}
+
+              </div>
+
             </div>
 
-            {/* Small Stats */}
-            <div className="mt-10 grid max-w-lg grid-cols-3 gap-6 border-t border-white/10 pt-8">
-              <div>
-                <p className="text-2xl font-black">100+</p>
-                <p className="mt-1 text-sm text-slate-400">
-                  Products
-                </p>
-              </div>
 
-              <div>
-                <p className="text-2xl font-black">20+</p>
-                <p className="mt-1 text-sm text-slate-400">
-                  Stores
-                </p>
-              </div>
+            {/* HERO SHOPPING PANEL */}
 
-              <div>
-                <p className="text-2xl font-black">24/7</p>
-                <p className="mt-1 text-sm text-slate-400">
-                  Shopping
-                </p>
-              </div>
-            </div>
-          </div>
+            <div className="relative">
 
-          {/* Hero Visual */}
-          <div className="relative">
-            <div className="relative mx-auto max-w-md">
+              <div className="absolute -inset-5 rounded-[3rem] bg-[#8fbfc7]/20 blur-3xl" />
 
-              <div className="absolute -inset-6 rounded-[3rem] bg-indigo-500/20 blur-3xl" />
+              <div className="relative rounded-[1.5rem] border border-[#bdd5d8] bg-[#cfe4e7] p-2.5 shadow-lg">
 
-              <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur">
-                <div className="rounded-[1.5rem] bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-8">
+                <div className="rounded-[1.15rem] bg-[#f0eee7] p-4">
 
-                  <div className="rounded-2xl bg-white p-6 text-slate-900 shadow-xl">
+                  <div className="flex items-center justify-between">
 
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                          Featured
-                        </p>
+                    <div>
 
-                        <h3 className="mt-1 text-xl font-black">
-                          New Collection
-                        </h3>
-                      </div>
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#7e624e]">
+                        ShopSphere
+                      </p>
 
-                      <div className="rounded-xl bg-indigo-100 px-3 py-2 text-xl">
-                        🛍️
-                      </div>
+                      <h2 className="mt-0.5 text-lg font-black">
+                        Today's picks
+                      </h2>
+
                     </div>
 
-                    <div className="mt-6 grid grid-cols-2 gap-3">
-                      <div className="flex h-32 items-center justify-center rounded-xl bg-slate-100 text-5xl">
-                        👟
-                      </div>
-
-                      <div className="flex h-32 items-center justify-center rounded-xl bg-slate-100 text-5xl">
-                        🎧
-                      </div>
-
-                      <div className="flex h-32 items-center justify-center rounded-xl bg-slate-100 text-5xl">
-                        👕
-                      </div>
-
-                      <div className="flex h-32 items-center justify-center rounded-xl bg-slate-100 text-5xl">
-                        ⌚
-                      </div>
-                    </div>
-
-                    <div className="mt-5 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-slate-400">
-                          Starting from
-                        </p>
-
-                        <p className="text-xl font-black">
-                          ₹499
-                        </p>
-                      </div>
-
-                      <Link
-                        to="/products"
-                        className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white"
-                      >
-                        Shop
-                      </Link>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#674936] text-base">
+                      🛒
                     </div>
 
                   </div>
+
+
+                  <div className="mt-4 grid grid-cols-2 gap-2.5">
+
+                    <HeroTile emoji="👟" bg="bg-[#e7d9cd]" />
+                    <HeroTile emoji="🎧" bg="bg-[#d5e9ec]" />
+                    <HeroTile emoji="⌚" bg="bg-[#dce7df]" />
+                    <HeroTile emoji="💄" bg="bg-[#e8dadd]" />
+
+                  </div>
+
+
+                  <div className="mt-3 rounded-xl bg-[#674936] px-4 py-3 text-[#f7f0e8]">
+
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#d7c0ad]">
+                      The marketplace
+                    </p>
+
+                    <div className="mt-0.5 flex items-center justify-between">
+
+                      <p className="text-xs font-black">
+                        Many stores. One cart.
+                      </p>
+
+                      <span>
+                        →
+                      </span>
+
+                    </div>
+
+                  </div>
+
                 </div>
+
               </div>
 
             </div>
+
           </div>
 
         </div>
+
       </section>
 
-      {/* ================= CATEGORIES ================= */}
-      <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
 
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <p className="font-semibold text-indigo-600">
-              SHOP BY CATEGORY
-            </p>
+      {/* =====================================================
+          TRUST / BENEFITS
+      ===================================================== */}
 
-            <h2 className="mt-2 text-3xl font-black sm:text-4xl">
-              Find what you love
-            </h2>
+      <section className="border-b border-[#d8d0c5] bg-[#ebe6dd]">
 
-            <p className="mt-3 max-w-xl text-slate-500">
-              Browse popular categories and discover products from
-              different stores.
-            </p>
-          </div>
+        <div className="mx-auto grid max-w-7xl grid-cols-2 md:grid-cols-4 lg:px-8">
 
-          <Link
-            to="/products"
-            className="font-bold text-indigo-600 hover:text-indigo-500"
-          >
-            View all products →
-          </Link>
+          <Benefit
+            icon="🏪"
+            title="Multiple stores"
+            text="Shop different vendors"
+          />
+
+          <Benefit
+            icon="🔒"
+            title="Secure checkout"
+            text="Protected shopping"
+          />
+
+          <Benefit
+            icon="📦"
+            title="Easy ordering"
+            text="Simple experience"
+          />
+
+          <Benefit
+            icon="🌐"
+            title="One marketplace"
+            text="Everything together"
+          />
+
         </div>
 
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+      </section>
+
+
+      {/* =====================================================
+          SHOP BY CATEGORY
+      ===================================================== */}
+
+      <section className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
+
+        <SectionHeading
+          eyebrow="Browse"
+          title="Shop by category"
+          description="Find your next favourite without digging through the entire marketplace."
+          linkText="View all →"
+          linkTo="/products"
+        />
+
+
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
 
           {categories.map((category) => (
+
             <Link
               key={category.name}
-              to={`/products?category=${encodeURIComponent(
-                category.name
-              )}`}
-              className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg"
+              to={`/products?category=${encodeURIComponent(category.name)}`}
+              className="group rounded-xl border border-[#d9d1c7] bg-[#ebe7df] p-3 transition duration-200 hover:-translate-y-0.5 hover:border-[#a6cbd0] hover:bg-[#e5f1f2] hover:shadow-md"
             >
 
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-100 text-3xl transition group-hover:bg-indigo-100">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-xl ${category.color} text-2xl transition group-hover:scale-105`}
+              >
                 {category.icon}
               </div>
 
-              <h3 className="mt-4 font-bold">
+              <h3 className="mt-3 text-xs font-black text-[#3b2e26]">
                 {category.name}
               </h3>
 
-              <p className="mt-1 text-xs leading-5 text-slate-500">
-                {category.description}
+              <p className="mt-1 text-[9px] text-[#81766d]">
+                Explore →
               </p>
 
             </Link>
+
           ))}
 
         </div>
+
       </section>
 
-      {/* ================= FEATURED PRODUCTS ================= */}
-      <section className="bg-white py-16">
 
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      {/* =====================================================
+          PROMOTIONAL STRIP
+      ===================================================== */}
 
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <section className="mx-auto max-w-7xl px-5 lg:px-8">
+
+        <div className="relative overflow-hidden rounded-2xl bg-[#674936] px-6 py-6 text-[#f8f1e8] shadow-md">
+
+          <div className="absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[#a9d7dd]/15 blur-3xl" />
+
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
             <div>
-              <p className="font-semibold text-indigo-600">
-                FEATURED PRODUCTS
+
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#c9dfe2]">
+                ShopSphere spotlight
               </p>
 
-              <h2 className="mt-2 text-3xl font-black sm:text-4xl">
-                Popular right now
+              <h2 className="mt-1 text-xl font-black sm:text-2xl">
+                New stores. New products. New reasons to browse.
               </h2>
 
-              <p className="mt-3 text-slate-500">
-                Check out some of the latest products available on
-                ShopSphere.
+              <p className="mt-1.5 max-w-xl text-xs leading-5 text-[#ded1c6]">
+                Explore what's available across the marketplace and discover
+                something you didn't know you needed.
               </p>
+
             </div>
 
             <Link
               to="/products"
-              className="font-bold text-indigo-600 hover:text-indigo-500"
+              className="shrink-0 rounded-lg bg-[#cce8eb] px-5 py-2.5 text-xs font-black text-[#466a72] transition hover:bg-[#e0f2f4]"
             >
-              View all →
+              Shop now →
             </Link>
 
           </div>
 
-          {loadingProducts ? (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {[1, 2, 3, 4].map((item) => (
-                <div
-                  key={item}
-                  className="h-80 animate-pulse rounded-2xl bg-slate-100"
-                />
-              ))}
-            </div>
-          ) : products.length === 0 ? (
-            <div className="mt-10 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-              <div className="text-4xl">📦</div>
+        </div>
 
-              <h3 className="mt-4 text-xl font-bold">
-                No products available
-              </h3>
+      </section>
 
-              <p className="mt-2 text-slate-500">
-                Products will appear here once they are added.
-              </p>
-            </div>
+
+      {/* =====================================================
+          FEATURED PRODUCTS
+      ===================================================== */}
+
+      <section className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
+
+        <SectionHeading
+          eyebrow="Fresh picks"
+          title="Popular products"
+          description="A few things shoppers are checking out across the sphere."
+          linkText="See everything →"
+          linkTo="/products"
+        />
+
+        {loadingProducts ? (
+
+          <ProductSkeleton />
+
+        ) : products.length === 0 ? (
+
+          <EmptyState
+            icon="📦"
+            title="Products are arriving"
+            description="Once vendors add products, they'll appear here."
+          />
+
+        ) : (
+
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+
+            {featuredProducts.map((product) => (
+
+              <ProductCard
+                key={product._id}
+                product={product}
+              />
+
+            ))}
+
+          </div>
+
+        )}
+
+      </section>
+
+
+      {/* =====================================================
+          STORES
+      ===================================================== */}
+
+      <section className="border-y border-[#d8d0c5] bg-[#e7e2d9]">
+
+        <div className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
+
+          <SectionHeading
+            eyebrow="Marketplace"
+            title="Explore stores"
+            description="Different vendors, different products, one connected shopping experience."
+            linkText="All stores →"
+            linkTo="/stores"
+          />
+
+
+          {loadingStores ? (
+
+            <StoreSkeleton />
+
+          ) : stores.length === 0 ? (
+
+            <EmptyState
+              icon="🏪"
+              title="Stores are getting ready"
+              description="Vendor stores will appear here once they are created."
+            />
+
           ) : (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
-              {products.slice(0, 8).map((product) => (
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+
+              {stores.slice(0, 6).map((store) => (
 
                 <Link
-                  key={product._id}
-                  to="/products"
-                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  key={store._id}
+                  to={`/store/${store.slug}`}
+                  className="group rounded-xl border border-[#d5cdc2] bg-[#eeeae3] p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#a4c9cf] hover:bg-[#e4eff0] hover:shadow-md"
                 >
 
-                  {/* Product Image */}
-                  <div className="relative flex h-56 items-center justify-center overflow-hidden bg-slate-100">
+                  <div className="flex items-center gap-3">
 
-                    {product.images?.[0] ? (
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="text-6xl">
-                        🛍️
-                      </div>
-                    )}
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#d6e9eb] text-2xl">
 
-                    <div className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-bold shadow">
-                      Featured
+                      {store.logo ? (
+                        <img
+                          src={store.logo}
+                          alt={store.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        "🏪"
+                      )}
+
+                    </div>
+
+                    <div className="min-w-0">
+
+                      <h3 className="truncate text-sm font-black text-[#3b2e26]">
+                        {store.name || "Store"}
+                      </h3>
+
+                      <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-[#81766d]">
+                        {store.description ||
+                          "Discover products from this store."}
+                      </p>
+
                     </div>
 
                   </div>
 
-                  {/* Product Details */}
-                  <div className="p-5">
 
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      {product.category || "Product"}
-                    </p>
+                  <div className="mt-4 flex items-center justify-between border-t border-[#d9d0c5] pt-3">
 
-                    <h3 className="mt-2 line-clamp-1 text-lg font-bold">
-                      {product.name || "Product"}
-                    </h3>
+                    <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8a7c71]">
+                      Visit store
+                    </span>
 
-                    <div className="mt-4 flex items-center justify-between">
-
-                      <p className="text-xl font-black text-slate-900">
-                        ₹{product.price ?? "—"}
-                      </p>
-
-                      <span className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-bold text-white">
-                        View
-                      </span>
-
-                    </div>
+                    <span className="text-sm font-black text-[#5d8f99] transition group-hover:translate-x-1">
+                      →
+                    </span>
 
                   </div>
 
@@ -405,224 +547,140 @@ export default function Home() {
               ))}
 
             </div>
+
           )}
 
         </div>
+
       </section>
 
-      {/* ================= STORES ================= */}
-      <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
 
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      {/* =====================================================
+          TRENDING
+      ===================================================== */}
 
-          <div>
-            <p className="font-semibold text-indigo-600">
-              DISCOVER STORES
-            </p>
+      {trendingProducts.length > 0 && (
 
-            <h2 className="mt-2 text-3xl font-black sm:text-4xl">
-              Explore our stores
-            </h2>
+        <section className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
 
-            <p className="mt-3 text-slate-500">
-              Discover different vendors and shop their collections.
-            </p>
-          </div>
+          <SectionHeading
+            eyebrow="Trending now"
+            title="More to discover"
+            description="Keep exploring. Your next favourite might be hiding here."
+            linkText="Browse all →"
+            linkTo="/products"
+          />
 
-          <Link
-            to="/stores"
-            className="font-bold text-indigo-600 hover:text-indigo-500"
-          >
-            Explore all stores →
-          </Link>
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
 
-        </div>
+            {trendingProducts.map((product) => (
 
-        {loadingStores ? (
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="h-48 animate-pulse rounded-2xl bg-slate-100"
+              <ProductCard
+                key={product._id}
+                product={product}
               />
-            ))}
-          </div>
-        ) : stores.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center">
-            <div className="text-4xl">🏪</div>
-
-            <h3 className="mt-4 text-xl font-bold">
-              No stores available
-            </h3>
-
-            <p className="mt-2 text-slate-500">
-              Stores will appear here once vendors create them.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-
-            {stores.slice(0, 6).map((store) => (
-
-              <Link
-                key={store._id}
-                to={`/store/${store.slug}`}
-                className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-              >
-
-                <div className="flex items-center gap-5">
-
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-indigo-100 text-3xl">
-
-                    {store.logo ? (
-                      <img
-                        src={store.logo}
-                        alt={store.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      "🏪"
-                    )}
-
-                  </div>
-
-                  <div className="min-w-0">
-
-                    <h3 className="truncate text-xl font-black">
-                      {store.name || "Store"}
-                    </h3>
-
-                    <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                      {store.description ||
-                        "Discover products from this store."}
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
-
-                  <span className="text-sm font-semibold text-slate-500">
-                    Visit store
-                  </span>
-
-                  <span className="font-bold text-indigo-600 transition group-hover:translate-x-1">
-                    →
-                  </span>
-
-                </div>
-
-              </Link>
 
             ))}
 
           </div>
-        )}
 
-      </section>
+        </section>
 
-      {/* ================= WHY SHOPSPHERE ================= */}
-      <section className="bg-slate-950 py-16 text-white">
+      )}
 
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
 
-          <div className="mx-auto max-w-2xl text-center">
+      {/* =====================================================
+          WHY SHOPSPHERE
+      ===================================================== */}
 
-            <p className="font-semibold text-indigo-400">
-              WHY SHOPSPHERE?
-            </p>
+      <section className="bg-[#18372f]">
 
-            <h2 className="mt-2 text-3xl font-black sm:text-4xl">
-              Shopping made simple
-            </h2>
+        <div className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
 
-            <p className="mt-4 text-slate-400">
-              Everything you need for a smooth and enjoyable shopping
-              experience.
-            </p>
-
-          </div>
-
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-7">
-              <div className="text-4xl">🛍️</div>
-
-              <h3 className="mt-5 text-xl font-bold">
-                Multiple Stores
-              </h3>
-
-              <p className="mt-3 leading-7 text-slate-400">
-                Explore products from different vendors and stores
-                through one convenient platform.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-7">
-              <div className="text-4xl">🔒</div>
-
-              <h3 className="mt-5 text-xl font-bold">
-                Secure Shopping
-              </h3>
-
-              <p className="mt-3 leading-7 text-slate-400">
-                Shop with confidence using secure authentication and
-                protected checkout workflows.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-7">
-              <div className="text-4xl">⚡</div>
-
-              <h3 className="mt-5 text-xl font-bold">
-                Simple Experience
-              </h3>
-
-              <p className="mt-3 leading-7 text-slate-400">
-                Discover products, manage your cart, and place orders
-                through a clean and simple interface.
-              </p>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-      {/* ================= CTA ================= */}
-      <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
-
-        <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-12 text-white shadow-xl md:px-12">
-
-          <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
+          <div className="grid gap-7 lg:grid-cols-[.85fr_1.15fr] lg:items-center">
 
             <div>
 
-              <h2 className="text-3xl font-black sm:text-4xl">
-                Ready to start shopping?
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#a8d7dc]">
+                Why ShopSphere?
+              </p>
+
+              <h2 className="mt-2 text-2xl font-black leading-tight text-[#f2eee7] sm:text-3xl">
+
+                Shopping shouldn't feel
+                <span className="block text-[#a8dce2]">
+                  scattered everywhere.
+                </span>
+
               </h2>
 
-              <p className="mt-3 max-w-xl text-indigo-100">
-                Explore products and stores on ShopSphere today.
+              <p className="mt-3 max-w-md text-xs leading-5 text-[#b9c9c3]">
+                ShopSphere brings different stores together so you can
+                discover, compare and shop from one marketplace.
               </p>
 
             </div>
 
-            <div className="flex flex-wrap gap-3">
+
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+
+              <DarkStat value="100+" label="Products" />
+              <DarkStat value="20+" label="Stores" />
+              <DarkStat value="24/7" label="Shopping" />
+              <DarkStat value="1" label="Marketplace" />
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================================
+          FINAL CTA
+      ===================================================== */}
+
+      <section className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
+
+        <div className="relative overflow-hidden rounded-2xl bg-[#c9e2e5] px-6 py-7 shadow-sm">
+
+          <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-[#91bec5]/25 blur-3xl" />
+
+          <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+
+            <div>
+
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#577a81]">
+                Ready when you are
+              </p>
+
+              <h2 className="mt-1 text-xl font-black text-[#30251f] sm:text-2xl">
+                Find something worth bringing home.
+              </h2>
+
+              <p className="mt-1.5 text-xs text-[#70665e]">
+                Browse products or explore stores across ShopSphere.
+              </p>
+
+            </div>
+
+
+            <div className="flex flex-wrap gap-2">
 
               <Link
                 to="/products"
-                className="rounded-xl bg-white px-6 py-3 font-bold text-indigo-600 transition hover:bg-indigo-50"
+                className="rounded-lg bg-[#674936] px-5 py-2.5 text-xs font-black text-[#f8f1e8] transition hover:bg-[#543a2c]"
               >
-                Start Shopping
+                Start shopping
               </Link>
 
               <Link
                 to="/stores"
-                className="rounded-xl border border-white/30 px-6 py-3 font-bold text-white transition hover:bg-white/10"
+                className="rounded-lg border border-[#9dbfc4] bg-[#e2f0f1] px-5 py-2.5 text-xs font-black text-[#4d737b] transition hover:bg-[#d5e9eb]"
               >
-                Explore Stores
+                Browse stores
               </Link>
 
             </div>
@@ -633,49 +691,376 @@ export default function Home() {
 
       </section>
 
-      {/* ================= FOOTER ================= */}
-      <footer className="border-t border-slate-200 bg-white">
 
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+      {/* =====================================================
+          FOOTER
+      ===================================================== */}
 
-          <div>
-            <p className="text-lg font-black text-slate-900">
-              ShopSphere
-            </p>
+      <footer className="border-t border-[#d0c8bd] bg-[#ded8ce]">
 
-            <p className="mt-1">
-              Your multi-store shopping platform.
-            </p>
+        <div className="mx-auto max-w-7xl px-5 py-8 lg:px-8">
+
+          <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
+
+            <div>
+
+              <div className="flex items-center gap-2">
+
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#674936] text-sm font-black text-[#f7f0e7]">
+                  S
+                </div>
+
+                <span className="text-lg font-black">
+                  Shop<span className="text-[#5d8f99]">Sphere</span>
+                </span>
+
+              </div>
+
+              <p className="mt-2 max-w-xs text-xs leading-5 text-[#766b62]">
+                One marketplace. Many stores. Endless discoveries.
+              </p>
+
+            </div>
+
+
+            <FooterColumn
+              title="Shop"
+              links={[
+                ["Products", "/products"],
+                ["Categories", "/products"],
+                ["Stores", "/stores"],
+                ["New arrivals", "/products"],
+              ]}
+            />
+
+
+            <FooterColumn
+              title="Account"
+              links={[
+                ["Login", "/login"],
+                ["Cart", "/cart"],
+                ["Orders", "/orders"],
+                ["Wishlist", "/wishlist"],
+              ]}
+            />
+
+
+            <div>
+
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#674936]">
+                ShopSphere
+              </p>
+
+              <p className="mt-2 text-xs leading-5 text-[#766b62]">
+                A connected marketplace bringing products and vendors
+                together in one shopping experience.
+              </p>
+
+            </div>
+
           </div>
 
-          <div className="flex gap-6">
 
-            <Link
-              to="/products"
-              className="hover:text-indigo-600"
-            >
-              Products
-            </Link>
+          <div className="mt-7 border-t border-[#c9c0b5] pt-4 text-[10px] text-[#82766d]">
 
-            <Link
-              to="/stores"
-              className="hover:text-indigo-600"
-            >
-              Stores
-            </Link>
-
-            <Link
-              to="/login"
-              className="hover:text-indigo-600"
-            >
-              Login
-            </Link>
+            © 2026 ShopSphere. Built for discovering more.
 
           </div>
 
         </div>
 
       </footer>
+
+    </main>
+  );
+}
+
+
+/* =========================================================
+   HERO TILE
+========================================================= */
+
+function HeroTile({ emoji, bg }) {
+  return (
+    <div
+      className={`flex h-28 items-center justify-center rounded-xl ${bg} text-4xl shadow-sm transition duration-200 hover:scale-[1.02]`}
+    >
+      {emoji}
+    </div>
+  );
+}
+
+
+/* =========================================================
+   PRODUCT CARD
+========================================================= */
+
+function ProductCard({ product }) {
+  return (
+    <Link
+      to="/products"
+      className="group overflow-hidden rounded-xl border border-[#d8d0c5] bg-[#ebe7df] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[#a5cbd0] hover:bg-[#e6f0f1] hover:shadow-md"
+    >
+
+      <div className="relative h-40 overflow-hidden bg-[#d7e7e8] sm:h-44">
+
+        {product.images?.[0] ? (
+
+          <img
+            src={product.images[0]}
+            alt={product.name}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+
+        ) : (
+
+          <div className="flex h-full items-center justify-center text-5xl">
+            🛍️
+          </div>
+
+        )}
+
+        <span className="absolute left-2.5 top-2.5 rounded-full bg-[#674936] px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-[#f7f0e7]">
+          {product.category || "Featured"}
+        </span>
+
+      </div>
+
+
+      <div className="p-3">
+
+        <p className="text-[8px] font-black uppercase tracking-[0.15em] text-[#64939c]">
+          ShopSphere
+        </p>
+
+        <h3 className="mt-1 line-clamp-1 text-xs font-black text-[#392d26] sm:text-sm">
+          {product.name || "Product"}
+        </h3>
+
+        <div className="mt-3 flex items-end justify-between gap-2">
+
+          <div>
+
+            <p className="text-[8px] text-[#91867c]">
+              Price
+            </p>
+
+            <p className="mt-0.5 text-base font-black text-[#30251f]">
+              ₹{product.price ?? "—"}
+            </p>
+
+          </div>
+
+          <span className="rounded-md bg-[#674936] px-2.5 py-1.5 text-[8px] font-black text-[#f8f1e8] transition group-hover:bg-[#543a2b]">
+            View
+          </span>
+
+        </div>
+
+      </div>
+
+    </Link>
+  );
+}
+
+
+/* =========================================================
+   SECTION HEADING
+========================================================= */
+
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+  linkText,
+  linkTo,
+}) {
+  return (
+    <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+
+      <div>
+
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#6597a0]">
+          {eyebrow}
+        </p>
+
+        <h2 className="mt-1 text-xl font-black tracking-tight text-[#30251f] sm:text-2xl">
+          {title}
+        </h2>
+
+        <p className="mt-1.5 max-w-xl text-xs leading-5 text-[#7b7169]">
+          {description}
+        </p>
+
+      </div>
+
+
+      {linkText && linkTo && (
+
+        <Link
+          to={linkTo}
+          className="shrink-0 text-xs font-black text-[#674936] transition hover:text-[#4f382a]"
+        >
+          {linkText}
+        </Link>
+
+      )}
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   BENEFIT
+========================================================= */
+
+function Benefit({ icon, title, text }) {
+  return (
+    <div className="flex items-center gap-2.5 border-r border-[#d2c9bd] px-4 py-3.5 last:border-r-0 sm:px-5">
+
+      <div className="text-lg">
+        {icon}
+      </div>
+
+      <div>
+
+        <p className="text-[10px] font-black text-[#44372f]">
+          {title}
+        </p>
+
+        <p className="mt-0.5 text-[9px] text-[#877c73]">
+          {text}
+        </p>
+
+      </div>
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   DARK STAT
+========================================================= */
+
+function DarkStat({ value, label }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-4">
+
+      <p className="text-xl font-black text-[#c5e6e9]">
+        {value}
+      </p>
+
+      <p className="mt-1 text-[10px] font-semibold text-[#aabdb7]">
+        {label}
+      </p>
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   FOOTER COLUMN
+========================================================= */
+
+function FooterColumn({ title, links }) {
+  return (
+    <div>
+
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#674936]">
+        {title}
+      </p>
+
+      <div className="mt-2.5 flex flex-col gap-1.5">
+
+        {links.map(([label, path]) => (
+
+          <Link
+            key={label}
+            to={path}
+            className="w-fit text-xs text-[#766b62] transition hover:text-[#5c91a0]"
+          >
+            {label}
+          </Link>
+
+        ))}
+
+      </div>
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+function EmptyState({
+  icon,
+  title,
+  description,
+}) {
+  return (
+    <div className="mt-6 rounded-xl border border-dashed border-[#c9c0b5] bg-[#e5e0d7] px-5 py-8 text-center">
+
+      <div className="text-3xl">
+        {icon}
+      </div>
+
+      <h3 className="mt-2 text-base font-black text-[#392d26]">
+        {title}
+      </h3>
+
+      <p className="mt-1 text-xs text-[#81766d]">
+        {description}
+      </p>
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   PRODUCT SKELETON
+========================================================= */
+
+function ProductSkeleton() {
+  return (
+    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+
+      {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+
+        <div
+          key={item}
+          className="h-64 animate-pulse rounded-xl bg-[#dfd9cf]"
+        />
+
+      ))}
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   STORE SKELETON
+========================================================= */
+
+function StoreSkeleton() {
+  return (
+    <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+
+      {[1, 2, 3].map((item) => (
+
+        <div
+          key={item}
+          className="h-32 animate-pulse rounded-xl bg-[#dcd6cc]"
+        />
+
+      ))}
 
     </div>
   );
