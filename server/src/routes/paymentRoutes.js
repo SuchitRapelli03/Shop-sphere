@@ -1,7 +1,8 @@
 import { Router } from "express";
 import {
   createRazorpayOrder,
-  verifyRazorpayPayment
+  verifyRazorpayPayment,
+  createStripeCheckout
 } from "../controllers/paymentController.js";
 import { protect, allowRoles } from "../middleware/auth.js";
 
@@ -12,6 +13,13 @@ router.post(
   protect,
   allowRoles("CUSTOMER"),
   createRazorpayOrder
+);
+
+router.post(
+  "/create-stripe-checkout",
+  protect,
+  allowRoles("CUSTOMER"),
+  createStripeCheckout
 );
 
 router.post(

@@ -7,6 +7,7 @@ import { sendOrderEmail } from "../utils/email.js";
 
 export async function createOrder(req, res) {
   try {
+    const { shippingAddress } = req.body;
     const cart = await Cart.findOne({
       customerId: req.user._id,
     }).populate("items.productId");
@@ -143,21 +144,30 @@ export async function createOrder(req, res) {
       });
     }
 
-    const order =
-      await Order.create({
-        customerId:
-          req.user._id,
-        storeId:
-          store._id,
-        vendorId:
-          vendor._id,
-        items,
-        total,
-        paymentStatus:
-          "PENDING",
-        status:
-          "PLACED",
-      });
+    if (
+  !shippingAddress ||
+  !shippingAddress.fullName ||
+  !shippingAddress.phone ||
+  !shippingAddress.addressLine ||
+  !shippingAddress.city ||
+  !shippingAddress.state ||
+  !shippingAddress.pincode
+) {
+  return res.status(400).json({
+    message: "Complete shipping address is required",
+  });
+}
+
+  const order = await Order.create({
+  customerId: req.user._id,
+  storeId: store._id,
+  vendorId: vendor._id,
+  items,
+  total,
+  shippingAddress,
+  paymentStatus: "PENDING",
+  status: "PLACED",
+});
 
     for (const item of cart.items) {
       await Product.findByIdAndUpdate(
