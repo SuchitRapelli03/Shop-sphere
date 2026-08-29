@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../redux/slices/authSlice.js";
@@ -6,6 +6,11 @@ import { logout } from "../redux/slices/authSlice.js";
 export default function Navbar() {
   const user = useSelector((s) => s.auth.user);
   const cartItems = useSelector((s) => s.cart?.items || []);
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const menuRef = useRef(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -16,18 +21,64 @@ export default function Navbar() {
   );
 
   function signOut() {
+    setIsMenuOpen(false);
     dispatch(logout());
     navigate("/");
   }
 
+  /* =========================================================
+     SEARCH
+  ========================================================= */
+
+  function handleSearch(event) {
+    event.preventDefault();
+
+    const query = searchQuery.trim();
+
+    if (!query) {
+      navigate("/products");
+      return;
+    }
+
+    /*
+      Always navigate to a fresh URL.
+
+      Example:
+      /products?search=headphones
+
+      Then:
+      /products?search=mouse
+
+      React Router will update the URL even when we are
+      already on /products.
+    */
+
+    navigate(`/products?search=${encodeURIComponent(query)}`);
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white shadow-sm">
+    <header className="w-full border-b border-emerald-400/20 bg-gradient-to-r from-[#022C22] via-[#064E3B] to-[#0F172A] shadow-lg shadow-emerald-950/20">
 
       {/* =========================
-          TOP NAVIGATION
+          MAIN NAVIGATION
       ========================= */}
 
-      <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 py-3 lg:px-6">
+      <div className="mx-auto flex min-h-[68px] max-w-7xl items-center gap-3 px-4 py-2 sm:gap-4 lg:px-6">
 
         {/* =========================
             LOGO
@@ -35,292 +86,314 @@ export default function Navbar() {
 
         <Link
           to="/"
-          className="flex shrink-0 items-center gap-2"
+          className="group flex shrink-0 items-center gap-2"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-xl font-black text-white shadow-sm">
-            S
+          <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-forest-900 text-lg font-black text-white shadow-sm transition-transform duration-200 group-hover:scale-105">
+            <span className="absolute -right-2 -top-2 h-7 w-7 rounded-full bg-emerald-400/30" />
+            <span className="relative">S</span>
           </div>
 
           <div className="hidden sm:block">
-            <div className="text-xl font-black tracking-tight text-slate-900">
-              Shop<span className="text-indigo-600">Sphere</span>
+            <div className="text-lg font-black tracking-tight text-white">
+              Shop<span className="text-emerald-300">Sphere</span>
             </div>
 
-            <div className="-mt-1 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-              Shop smarter
+            <div className="-mt-0.5 text-[8px] font-bold uppercase tracking-[0.22em] text-emerald-100/60">
+              Your marketplace
             </div>
           </div>
         </Link>
-
 
         {/* =========================
             SEARCH
         ========================= */}
 
-        <div className="hidden flex-1 md:block">
-          <div className="flex h-11 overflow-hidden rounded-lg border border-slate-300 bg-slate-50 transition focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
+        <div className="min-w-0 flex-1">
+
+          <form
+            onSubmit={handleSearch}
+            className="group flex h-11 overflow-hidden rounded-xl border border-white/10 bg-white/[0.08] backdrop-blur-md transition duration-300 focus-within:border-emerald-300/60 focus-within:bg-white/[0.12] focus-within:ring-2 focus-within:ring-emerald-400/10"
+          >
+
+            <span className="hidden items-center pl-3.5 text-base text-emerald-200/70 sm:flex">
+              🔎
+            </span>
 
             <input
               type="text"
-              placeholder="Search for products, stores and more..."
-              className="min-w-0 flex-1 bg-transparent px-4 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search products, stores and more..."
+              className="min-w-0 flex-1 bg-transparent px-3 text-sm text-white outline-none placeholder:bg-gradient-to-r placeholder:from-cyan-200 placeholder:via-emerald-200 placeholder:to-white placeholder:bg-clip-text placeholder:text-transparent sm:pl-2"
             />
 
             <button
-              type="button"
-              className="flex w-14 items-center justify-center bg-indigo-600 text-lg text-white transition hover:bg-indigo-700"
+              type="submit"
+              className="m-1 flex w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-300 text-base font-bold text-[#022C22] shadow-sm transition duration-300 hover:from-emerald-300 hover:to-cyan-200"
               aria-label="Search"
             >
-              🔍
+              →
             </button>
 
-          </div>
+          </form>
+
         </div>
 
+        {/* =========================
+            DESKTOP NAVIGATION
+        ========================= */}
+
+        <nav className="hidden items-center gap-0.5 lg:flex">
+
+          <Link
+            to="/products"
+            className="rounded-xl px-3 py-2 text-sm font-semibold text-emerald-50/90 transition duration-300 hover:bg-white/10 hover:text-emerald-300"
+          >
+            Products
+          </Link>
+
+          <Link
+            to="/stores"
+            className="rounded-xl px-3 py-2 text-sm font-semibold text-emerald-50/90 transition duration-300 hover:bg-white/10 hover:text-emerald-300"
+          >
+            Stores
+          </Link>
+
+          {user?.role === "CUSTOMER" && (
+            <Link
+              to="/orders"
+              className="rounded-xl px-3 py-2 text-sm font-semibold text-emerald-50/90 transition duration-300 hover:bg-white/10 hover:text-emerald-300"
+            >
+              Orders
+            </Link>
+          )}
+
+          {user?.role === "VENDOR" && (
+            <Link
+              to="/vendor"
+              className="rounded-xl px-3 py-2 text-sm font-semibold text-emerald-50/90 transition duration-300 hover:bg-white/10 hover:text-emerald-300"
+            >
+              Dashboard
+            </Link>
+          )}
+
+          {user?.role === "SUPER_ADMIN" && (
+            <Link
+              to="/admin"
+              className="rounded-xl px-3 py-2 text-sm font-semibold text-emerald-50/90 transition duration-300 hover:bg-white/10 hover:text-emerald-300"
+            >
+              Admin
+            </Link>
+          )}
+
+        </nav>
 
         {/* =========================
             RIGHT SIDE
         ========================= */}
 
-        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1.5">
 
-          {/* =========================
-              ACCOUNT
-          ========================= */}
-
-          {!user ? (
-
-            <Link
-              to="/login"
-              className="hidden items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 sm:flex"
-            >
-
-              <span className="text-lg">
-                👤
-              </span>
-
-              <span>
-                <span className="block text-[10px] font-medium text-slate-400">
-                  Hello, sign in
-                </span>
-
-                Account
-              </span>
-
-            </Link>
-
-          ) : (
-
-            <div className="hidden items-center gap-2 rounded-lg px-3 py-2 sm:flex">
-
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700">
-                {user.name?.charAt(0)?.toUpperCase() || "U"}
-              </span>
-
-              <div>
-
-                <span className="block text-[10px] font-medium text-slate-400">
-                  Hello
-                </span>
-
-                <span className="block max-w-28 truncate text-sm font-bold text-slate-800">
-                  {user.name || "Account"}
-                </span>
-
-              </div>
-
-            </div>
-
-          )}
-
-
-          {/* =========================
-              CUSTOMER ORDERS
-          ========================= */}
+          {/* CUSTOMER CART */}
 
           {user?.role === "CUSTOMER" && (
-
-            <Link
-              to="/orders"
-              className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 sm:block"
-            >
-
-              <span className="block text-[10px] font-medium text-slate-400">
-                Track
-              </span>
-
-              Orders
-
-            </Link>
-
-          )}
-
-
-          {/* =========================
-              CUSTOMER CART
-          ========================= */}
-
-          {user?.role === "CUSTOMER" && (
-
             <Link
               to="/cart"
-              className="relative flex items-center gap-1 rounded-lg px-3 py-2 text-slate-700 transition hover:bg-slate-100"
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07] text-lg transition duration-300 hover:border-emerald-300/30 hover:bg-emerald-400/10"
+              aria-label="Cart"
             >
-
-              <span className="text-2xl">
-                🛒
-              </span>
+              🛒
 
               {cartCount > 0 && (
-
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-bold text-white">
+                <span className="absolute -right-1 -top-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-gradient-to-r from-emerald-400 to-cyan-300 px-1 text-[9px] font-black text-[#022C22] shadow-md">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
-
               )}
-
-              <span className="hidden text-sm font-bold sm:block">
-                Cart
-              </span>
-
             </Link>
-
           )}
 
-
           {/* =========================
-              LOGIN + REGISTER
+              LOGGED OUT
           ========================= */}
 
           {!user && (
-
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
 
               <Link
                 to="/login"
-                className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="rounded-xl border border-white/15 bg-white/[0.05] px-3.5 py-2 text-sm font-semibold text-white transition duration-300 hover:border-emerald-300/30 hover:bg-white/10 hover:text-emerald-300"
               >
                 Login
               </Link>
 
               <Link
                 to="/register"
-                className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700"
+                className="hidden rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-300 px-4 py-2 text-sm font-bold text-[#022C22] shadow-md transition duration-300 hover:-translate-y-0.5 hover:from-emerald-300 hover:to-cyan-200 sm:block"
               >
-                Register
+                Join ShopSphere
               </Link>
 
             </div>
-
           )}
 
-
           {/* =========================
-              LOGOUT
+              LOGGED IN USER
           ========================= */}
 
           {user && (
+            <div className="relative" ref={menuRef}>
 
-            <button
-              onClick={signOut}
-              className="hidden rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 md:block"
-            >
-              Logout
-            </button>
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.07] px-2 py-1.5 transition duration-300 hover:border-emerald-300/30 hover:bg-white/10"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-300 to-cyan-300 text-sm font-black text-[#022C22]">
+                  {user.name?.charAt(0)?.toUpperCase() || "U"}
+                </span>
 
+                <span className="hidden max-w-24 truncate text-sm font-semibold text-white xl:block">
+                  {user.name || "Account"}
+                </span>
+              </button>
+
+              {/* USER MENU */}
+
+              <div
+                className={`absolute right-0 top-full z-50 mt-2 w-48 rounded-2xl border border-emerald-200/10 bg-[#022C22]/95 p-2 shadow-2xl backdrop-blur-xl transition-all duration-200 ${
+                  isMenuOpen
+                    ? "visible translate-y-0 opacity-100"
+                    : "invisible translate-y-2 opacity-0"
+                }`}
+              >
+
+                <div className="border-b border-white/10 px-3 py-2">
+
+                  <p className="truncate text-sm font-bold text-white">
+                    {user.name || "Account"}
+                  </p>
+
+                  <p className="truncate text-xs text-emerald-200/60">
+                    {user.email}
+                  </p>
+
+                </div>
+
+                <div className="mt-1">
+
+                  {user.role === "CUSTOMER" && (
+                    <>
+                      <Link
+                        to="/orders"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="block rounded-xl px-3 py-2 text-sm font-semibold text-emerald-50 transition hover:bg-white/10 hover:text-emerald-300"
+                      >
+                        My Orders
+                      </Link>
+
+                      <Link
+                        to="/cart"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="block rounded-xl px-3 py-2 text-sm font-semibold text-emerald-50 transition hover:bg-white/10 hover:text-emerald-300"
+                      >
+                        My Cart
+                      </Link>
+                    </>
+                  )}
+
+                  {user.role === "VENDOR" && (
+                    <Link
+                      to="/vendor"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block rounded-xl px-3 py-2 text-sm font-semibold text-emerald-50 transition hover:bg-white/10 hover:text-emerald-300"
+                    >
+                      Vendor Dashboard
+                    </Link>
+                  )}
+
+                  {user.role === "SUPER_ADMIN" && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block rounded-xl px-3 py-2 text-sm font-semibold text-emerald-50 transition hover:bg-white/10 hover:text-emerald-300"
+                    >
+                      Admin Dashboard
+                    </Link>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={signOut}
+                    className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-red-300 transition hover:bg-red-400/10 hover:text-red-200"
+                  >
+                    Sign out
+                  </button>
+
+                </div>
+              </div>
+            </div>
           )}
 
         </div>
-
       </div>
 
-
       {/* =========================
-          SECONDARY NAVIGATION
+          MOBILE NAVIGATION
       ========================= */}
 
-      <div className="border-t border-slate-100 bg-slate-50">
+      <div className="border-t border-white/10 bg-black/10 px-4 py-2 lg:hidden">
 
-        <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2 text-sm font-semibold lg:px-6">
-
-          {/* HOME */}
+        <div className="flex items-center gap-1.5 overflow-x-auto">
 
           <Link
             to="/"
-            className="whitespace-nowrap rounded-md px-3 py-1.5 text-slate-700 transition hover:bg-white hover:text-indigo-600"
+            className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-100/90 transition hover:bg-white/10 hover:text-emerald-300"
           >
-            🏠 Home
+            Home
           </Link>
-
-
-          {/* PRODUCTS */}
 
           <Link
             to="/products"
-            className="whitespace-nowrap rounded-md px-3 py-1.5 text-slate-700 transition hover:bg-white hover:text-indigo-600"
+            className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-100/90 transition hover:bg-white/10 hover:text-emerald-300"
           >
-            🛍️ All Products
+            Products
           </Link>
-
-
-          {/* STORES */}
 
           <Link
             to="/stores"
-            className="whitespace-nowrap rounded-md px-3 py-1.5 text-slate-700 transition hover:bg-white hover:text-indigo-600"
+            className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-100/90 transition hover:bg-white/10 hover:text-emerald-300"
           >
-            🏪 Stores
+            Stores
           </Link>
 
-
-          {/* VENDOR DASHBOARD */}
+          {user?.role === "CUSTOMER" && (
+            <Link
+              to="/orders"
+              className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-100/90 transition hover:bg-white/10 hover:text-emerald-300"
+            >
+              Orders
+            </Link>
+          )}
 
           {user?.role === "VENDOR" && (
-
             <Link
               to="/vendor"
-              className="whitespace-nowrap rounded-md px-3 py-1.5 text-slate-700 transition hover:bg-white hover:text-indigo-600"
+              className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-100/90 transition hover:bg-white/10 hover:text-emerald-300"
             >
-              📊 Vendor Dashboard
+              Vendor Dashboard
             </Link>
-
           )}
-
-
-          {/* ADMIN DASHBOARD */}
 
           {user?.role === "SUPER_ADMIN" && (
-
             <Link
               to="/admin"
-              className="whitespace-nowrap rounded-md px-3 py-1.5 text-slate-700 transition hover:bg-white hover:text-indigo-600"
+              className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-emerald-100/90 transition hover:bg-white/10 hover:text-emerald-300"
             >
-              ⚙️ Admin Dashboard
+              Admin Dashboard
             </Link>
-
           )}
 
-
-          {/* TRUST INDICATORS */}
-
-          <div className="ml-auto hidden items-center gap-2 text-xs text-slate-500 lg:flex">
-
-            <span>
-              ✓ Secure payments
-            </span>
-
-            <span>
-              •
-            </span>
-
-            <span>
-              ✓ Trusted stores
-            </span>
-
-          </div>
-
         </div>
-
       </div>
 
     </header>
