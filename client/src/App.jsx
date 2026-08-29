@@ -7,7 +7,7 @@ import {
 
 import Navbar from "./components/Navbar.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-
+import ShopSphereIntro from "./components/ShopSphereIntro.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
@@ -27,8 +27,14 @@ import AdminOrders from "./pages/AdminOrders.jsx";
 import Success from "./pages/Success.jsx";
 
 export default function App() {
+  const [showIntro, setShowIntro] = React.useState(true);
   return (
     <BrowserRouter>
+    {showIntro && (
+    <ShopSphereIntro
+      onComplete={() => setShowIntro(false)}
+    />
+  )}
       <Navbar />
 
       <Routes>
