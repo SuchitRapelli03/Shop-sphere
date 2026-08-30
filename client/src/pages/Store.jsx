@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../services/api.js";
+import ProductCard from "../components/ProductCard.jsx";
 
 export default function Store() {
   const { slug } = useParams();
@@ -17,7 +18,9 @@ export default function Store() {
         setError("");
 
         // Get the individual store using its slug
-        const { data } = await api.get(`/stores/slug/${slug}`);
+        const { data } = await api.get(
+          `/stores/slug/${slug}`
+        );
 
         setStore(data.store);
 
@@ -27,10 +30,15 @@ export default function Store() {
             `/products?storeId=${data.store._id}`
           );
 
-          setProducts(productResponse.data.products || []);
+          setProducts(
+            productResponse.data.products || []
+          );
         }
       } catch (err) {
-        console.error("Failed to load store:", err);
+        console.error(
+          "Failed to load store:",
+          err
+        );
 
         setError(
           err.response?.data?.message ||
@@ -46,98 +54,137 @@ export default function Store() {
     }
   }, [slug]);
 
-  // Loading
+  /* =========================================================
+     LOADING
+  ========================================================= */
+
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 px-6 py-16">
+      <main className="min-h-screen bg-[#f5f1e9] px-5 py-12 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="animate-pulse rounded-2xl bg-white p-8">
-            <div className="h-8 w-1/3 rounded bg-slate-200" />
-            <div className="mt-4 h-5 w-1/2 rounded bg-slate-200" />
+
+          <div className="animate-pulse rounded-[1.75rem] border border-[#ded5ca] bg-[#eee9e0] p-8">
+
+            <div className="h-28 w-28 rounded-3xl bg-[#ded5ca]" />
+
+            <div className="mt-6 h-4 w-32 rounded bg-[#ded5ca]" />
+
+            <div className="mt-3 h-10 w-1/3 rounded bg-[#ded5ca]" />
+
+            <div className="mt-4 h-5 w-1/2 rounded bg-[#ded5ca]" />
+
           </div>
+
         </div>
       </main>
     );
   }
 
-  // Error
+  /* =========================================================
+     ERROR
+  ========================================================= */
+
   if (error) {
     return (
-      <main className="min-h-screen bg-slate-50 px-6 py-16">
-        <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-10 text-center">
+      <main className="min-h-screen bg-[#f5f1e9] px-5 py-16 lg:px-8">
 
-          <div className="text-5xl">⚠️</div>
+        <div className="mx-auto max-w-3xl rounded-[1.75rem] border border-[#ded5ca] bg-[#eee9e0] p-10 text-center">
 
-          <h1 className="mt-4 text-2xl font-black">
+          <div className="text-5xl">
+            ⚠️
+          </div>
+
+          <h1 className="mt-5 text-2xl font-black text-[#30251f]">
             Unable to load store
           </h1>
 
-          <p className="mt-3 text-slate-600">
+          <p className="mt-3 text-sm leading-6 text-[#81766d]">
             {error}
           </p>
 
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-xs text-[#9a8f85]">
             Store: {slug}
           </p>
 
           <Link
             to="/stores"
-            className="mt-6 inline-block rounded-xl bg-indigo-600 px-6 py-3 font-bold text-white"
+            className="mt-6 inline-block rounded-xl bg-[#674936] px-6 py-3 text-sm font-black text-[#f8f1e8] transition hover:bg-[#543a2b]"
           >
             ← Back to Stores
           </Link>
 
         </div>
+
       </main>
     );
   }
 
-  // Store not found
+  /* =========================================================
+     STORE NOT FOUND
+  ========================================================= */
+
   if (!store) {
     return (
-      <main className="min-h-screen bg-slate-50 px-6 py-16">
+      <main className="min-h-screen bg-[#f5f1e9] px-5 py-16 lg:px-8">
+
         <div className="mx-auto max-w-3xl text-center">
 
-          <div className="text-6xl">🏪</div>
+          <div className="text-6xl">
+            🏪
+          </div>
 
-          <h1 className="mt-5 text-3xl font-black">
+          <h1 className="mt-5 text-3xl font-black text-[#30251f]">
             Store not found
           </h1>
 
-          <p className="mt-3 text-slate-600">
+          <p className="mt-3 text-sm text-[#81766d]">
             We couldn't find this store.
           </p>
 
           <Link
             to="/stores"
-            className="mt-6 inline-block rounded-xl bg-indigo-600 px-6 py-3 font-bold text-white"
+            className="mt-6 inline-block rounded-xl bg-[#674936] px-6 py-3 text-sm font-black text-[#f8f1e8] transition hover:bg-[#543a2b]"
           >
             ← Back to Stores
           </Link>
 
         </div>
+
       </main>
     );
   }
 
-  return (
-    <main className="min-h-screen bg-slate-50">
+  /* =========================================================
+     STORE PAGE
+  ========================================================= */
 
-      {/* Store Header */}
-      <section className="bg-slate-950 text-white">
-        <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
+  return (
+    <main className="min-h-screen bg-[#f5f1e9] text-[#30251f]">
+
+      {/* =====================================================
+          STORE HEADER
+      ===================================================== */}
+
+      <section className="border-b border-[#ded5ca] bg-[#e5f1f3]">
+
+        <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
+
+          {/* Back link */}
 
           <Link
             to="/stores"
-            className="text-sm font-semibold text-indigo-300 hover:text-indigo-200"
+            className="text-xs font-black text-[#64939c] transition hover:text-[#4f7e85]"
           >
             ← Back to Stores
           </Link>
 
+          {/* Store information */}
+
           <div className="mt-8 flex flex-col gap-6 md:flex-row md:items-center">
 
             {/* Store Logo */}
-            <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-white text-5xl">
+
+            <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-[1.75rem] border border-[#c7dfe2] bg-[#f5f1e9] text-5xl shadow-sm">
 
               {store.logo ? (
                 <img
@@ -152,124 +199,128 @@ export default function Store() {
             </div>
 
             {/* Store Information */}
+
             <div>
 
-              <p className="text-sm font-bold uppercase tracking-wider text-indigo-400">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6a9aa2]">
                 ShopSphere Store
               </p>
 
-              <h1 className="mt-2 text-4xl font-black">
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-[#30251f] sm:text-4xl">
                 {store.name}
               </h1>
 
-              <p className="mt-3 max-w-2xl text-slate-300">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746a62]">
                 {store.description ||
                   "Discover amazing products from this store."}
               </p>
 
+              {/* Store status */}
+
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#c7dfe2] bg-[#f0f7f8] px-3 py-1.5">
+
+                <span className="h-2 w-2 rounded-full bg-[#6a9aa2]" />
+
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#55777d]">
+                  Active Store
+                </span>
+
+              </div>
+
             </div>
 
           </div>
+
         </div>
+
       </section>
 
-      {/* Products */}
-      <section className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
 
-        <div className="flex items-end justify-between">
+      {/* =====================================================
+          STORE PRODUCTS
+      ===================================================== */}
+
+      <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
+
+        {/* Section heading */}
+
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
 
           <div>
-            <p className="text-sm font-bold uppercase tracking-wider text-indigo-600">
+
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6a9aa2]">
               Store Products
             </p>
 
-            <h2 className="mt-2 text-3xl font-black">
+            <h2 className="mt-2 text-3xl font-black text-[#30251f]">
               Products
             </h2>
+
+            <p className="mt-1 text-sm text-[#81766d]">
+              {products.length}{" "}
+              {products.length === 1
+                ? "product"
+                : "products"}{" "}
+              available
+            </p>
+
           </div>
 
           <Link
             to="/products"
-            className="font-bold text-indigo-600 hover:text-indigo-500"
+            className="rounded-xl bg-[#674936] px-4 py-2.5 text-center text-xs font-black text-[#f8f1e8] transition hover:bg-[#543a2b]"
           >
             View All Products →
           </Link>
 
         </div>
 
+
+        {/* ===================================================
+            NO PRODUCTS
+        =================================================== */}
+
         {products.length === 0 ? (
-          <div className="mt-10 rounded-2xl border border-dashed bg-white p-12 text-center">
 
-            <div className="text-5xl">📦</div>
+          <div className="mt-8 rounded-[1.75rem] border border-dashed border-[#cfc4b8] bg-[#eee9e0] px-6 py-16 text-center">
 
-            <h3 className="mt-4 text-xl font-bold">
+            <div className="text-5xl">
+              📦
+            </div>
+
+            <h3 className="mt-4 text-xl font-black text-[#30251f]">
               No products available
             </h3>
 
-            <p className="mt-2 text-slate-600">
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#81766d]">
               This store doesn't have any active products yet.
             </p>
 
           </div>
+
         ) : (
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+
+          /* =================================================
+             PRODUCT GRID
+          ================================================= */
+
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
 
             {products.map((product) => (
-              <div
+
+              <ProductCard
                 key={product._id}
-                className="overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-              >
+                product={product}
+              />
 
-                {/* Product Image */}
-                <div className="flex h-52 items-center justify-center bg-slate-100">
-
-                  {product.images?.[0] ? (
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-5xl">
-                      📦
-                    </span>
-                  )}
-
-                </div>
-
-                {/* Product Details */}
-                <div className="p-5">
-
-                  <h3 className="text-lg font-bold">
-                    {product.name}
-                  </h3>
-
-                  {product.description && (
-                    <p className="mt-2 line-clamp-2 text-sm text-slate-500">
-                      {product.description}
-                    </p>
-                  )}
-
-                  <div className="mt-4 flex items-center justify-between">
-
-                    <span className="text-xl font-black text-indigo-600">
-                      ₹{product.price}
-                    </span>
-
-                    <span className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-bold text-indigo-600">
-                      Stock: {product.stock}
-                    </span>
-
-                  </div>
-
-                </div>
-              </div>
             ))}
 
           </div>
+
         )}
 
       </section>
+
     </main>
   );
 }

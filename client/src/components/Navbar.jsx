@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation} from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../redux/slices/authSlice.js";
 
@@ -9,11 +9,26 @@ export default function Navbar() {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const location = useLocation();
   const menuRef = useRef(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  useEffect(() => {
+  if (location.pathname !== "/products") {
+    setSearchQuery("");
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (location.pathname === "/products") {
+      const params = new URLSearchParams(location.search);
+      setSearchQuery(params.get("search") || "");
+    } else {
+      setSearchQuery("");
+    }
+  }, [location.pathname, location.search]);
 
   const cartCount = cartItems.reduce(
     (total, item) => total + (item.quantity || 0),
@@ -30,31 +45,26 @@ export default function Navbar() {
      SEARCH
   ========================================================= */
 
-  function handleSearch(event) {
-    event.preventDefault();
+ function handleSearch(event) {
+  event.preventDefault();
 
-    const query = searchQuery.trim();
+  const query = searchQuery.trim();
 
-    if (!query) {
-      navigate("/products");
-      return;
-    }
-
-    /*
-      Always navigate to a fresh URL.
-
-      Example:
-      /products?search=headphones
-
-      Then:
-      /products?search=mouse
-
-      React Router will update the URL even when we are
-      already on /products.
-    */
-
-    navigate(`/products?search=${encodeURIComponent(query)}`);
+  if (!query) {
+    navigate("/products");
+    return;
   }
+
+  navigate(
+    {
+      pathname: "/products",
+      search: `?search=${encodeURIComponent(query)}`,
+    },
+    {
+      replace: true,
+    }
+  );
+}
 
   // Close dropdown when clicking outside
   useEffect(() => {
