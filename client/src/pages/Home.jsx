@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api.js";
+import ProductCard from "../components/ProductCard.jsx";
 
 export default function Home() {
   const [products, setProducts] = useState([]);
@@ -15,7 +16,7 @@ export default function Home() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await api.get("/products");
+        const response = await api.get("/products?limit=50");
 
         const data =
           response.data?.products ||
@@ -63,64 +64,145 @@ export default function Home() {
   }, []);
 
   /* =========================================================
-     CATEGORIES
+     QUICK CATEGORIES
   ========================================================= */
 
-  const categories = [
-    {
-      name: "Electronics",
-      icon: "🎧",
-      color: "bg-[#d8edf0]",
-    },
+  const quickCategories = [
+    { name: "Men", icon: "♂" },
+    { name: "Women", icon: "♀" },
+    { name: "Kids", icon: "🧸" },
+    { name: "Food", icon: "🍽️" },
+    { name: "Grocery", icon: "🥑" },
+    { name: "Electronics", icon: "💻" },
+    { name: "Beauty", icon: "💄" },
+    { name: "Home Appliances", icon: "🏠" },
+    { name: "Stationery", icon: "✏️" },
+    { name: "Tools", icon: "🔧" },
+  ];
+
+  /* =========================================================
+     SHOPPING DEPARTMENTS
+  ========================================================= */
+
+  const departments = [
     {
       name: "Fashion",
       icon: "👕",
-      color: "bg-[#e8ddd2]",
+      description: "Everyday styles",
+      bg: "bg-[#eadfd5]",
+    },
+    {
+      name: "Electronics",
+      icon: "🎧",
+      description: "Tech & gadgets",
+      bg: "bg-[#d9ecef]",
+    },
+    {
+      name: "Home & Living",
+      icon: "🏠",
+      description: "Make it yours",
+      bg: "bg-[#e7e0d5]",
     },
     {
       name: "Beauty",
       icon: "💄",
-      color: "bg-[#e4dce5]",
-    },
-    {
-      name: "Grocery",
-      icon: "🥑",
-      color: "bg-[#dce8dc]",
-    },
-    {
-      name: "Home",
-      icon: "🏠",
-      color: "bg-[#e5dfd6]",
+      description: "Care & glow",
+      bg: "bg-[#e7dfe7]",
     },
     {
       name: "Sports",
       icon: "⚽",
-      color: "bg-[#d9e7e3]",
+      description: "Move better",
+      bg: "bg-[#dce8df]",
     },
     {
-      name: "Shoes",
-      icon: "👟",
-      color: "bg-[#e8ddd5]",
+      name: "Food & Grocery",
+      icon: "🥑",
+      description: "Daily essentials",
+      bg: "bg-[#dfe8d9]",
+    },
+    {
+      name: "Stationery",
+      icon: "✏️",
+      description: "Study & create",
+      bg: "bg-[#e3e1d6]",
     },
     {
       name: "Accessories",
       icon: "⌚",
-      color: "bg-[#d9e9ec]",
+      description: "Little details",
+      bg: "bg-[#dce9ec]",
     },
   ];
 
-  const featuredProducts = useMemo(
+  /* =========================================================
+     PRODUCT GROUPS
+  ========================================================= */
+
+  const popularProducts = useMemo(
     () => products.slice(0, 8),
     [products]
   );
 
-  const trendingProducts = useMemo(
+  const moreProducts = useMemo(
     () => products.slice(8, 16),
     [products]
   );
 
+  const dealProducts = useMemo(
+    () => [...products]
+      .sort((a, b) => Number(a.price || 0) - Number(b.price || 0))
+      .slice(0, 8),
+    [products]
+  );
+
+  /* =========================================================
+     COUNTS
+  ========================================================= */
+
+  const productCount = products.length;
+  const storeCount = stores.length;
+
   return (
     <main className="min-h-screen bg-[#f3efe8] text-[#30251f]">
+
+      {/* =====================================================
+          QUICK CATEGORY NAVIGATION
+          KEEPING YOUR VERSION
+      ===================================================== */}
+
+      <section className="border-b border-[#d8d0c5] bg-[#6EA7B7]">
+
+        <div className="mx-auto max-w-7xl px-3 lg:px-8">
+
+          <div className="flex overflow-x-auto scrollbar-hide">
+
+            {quickCategories.map((category) => (
+
+              <Link
+                key={category.name}
+                to={`/products?category=${encodeURIComponent(category.name)}`}
+                className="group relative flex min-w-[88px] shrink-0 items-center justify-center gap-2 border-r border-[#e1d9cf] px-3 py-3 transition duration-200 first:border-l hover:bg-[#e9f3f4]"
+              >
+
+                <span className="text-sm grayscale transition duration-200 group-hover:grayscale-0">
+                  {category.icon}
+                </span>
+
+                <span className="whitespace-nowrap text-[10px] font-black text-[#5f554d] transition group-hover:text-[#3f737c]">
+                  {category.name}
+                </span>
+
+              </Link>
+
+            ))}
+
+          </div>
+
+        </div>
+
+      </section>
+
 
       {/* =====================================================
           OFFER STRIP
@@ -135,75 +217,59 @@ export default function Home() {
           HERO
       ===================================================== */}
 
-      <section className="border-b border-[#d8d0c5] bg-[#dcecef]">
+      <section className="border-b border-[#d8d0c5] bg-gradient-to-r from-forest-900 to-forest-800 px-5 py-8 lg:px-8 lg:py-10">
 
-        <div className="mx-auto max-w-7xl px-5 py-9 lg:px-8 lg:py-11">
+        <div className="mx-auto max-w-7xl px-5 py-8 lg:px-8 lg:py-10">
 
-          <div className="grid gap-7 lg:grid-cols-[1.15fr_.85fr] lg:items-center">
+          <div className="grid gap-6 lg:grid-cols-[1.15fr_.85fr] lg:items-stretch">
 
             {/* HERO COPY */}
 
-            <div>
+            <div className="flex flex-col justify-center rounded-[1.5rem] border border-[#bdd5d8] bg-[#edf7f8] px-6 py-8 shadow-sm sm:px-8">
 
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#a8cbd0] bg-[#edf7f8] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-[#557d84]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#638f97]" />
-                Welcome to ShopSphere
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#a8cbd0] bg-white/60 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-[#557d84]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#047857]" />
+                The ShopSphere marketplace
               </span>
 
-              <h1 className="mt-4 max-w-2xl text-4xl font-black leading-[1.03] tracking-tight text-[#022C22] sm:text-5xl">
-
-                Everything you want.
-
+              <h1 className="mt-5 max-w-2xl text-4xl font-black leading-[1.02] tracking-tight text-[#022C22] sm:text-5xl lg:text-6xl">
+                Find it.
                 <span className="block text-[#047857]">
-                  One shopping sphere.
+                  Love it.
                 </span>
-
+                <span className="block text-[#674936]">
+                  Shop it.
+                </span>
               </h1>
 
               <p className="mt-4 max-w-xl text-sm leading-6 text-[#6d6259] sm:text-base">
-                Discover products from different stores, compare your
-                favourites and shop everything from one connected marketplace.
+                Discover products from multiple stores, compare your
+                favourites and bring everything together in one connected
+                marketplace.
               </p>
 
+              <div className="mt-6 flex flex-wrap gap-2.5">
 
-              {/* SEARCH BAR */}
+                <Link
+                  to="/products"
+                  className="rounded-xl bg-[#674936] px-5 py-3 text-xs font-black text-[#f8f1e8] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-[#543a2b]"
+                >
+                  Start shopping →
+                </Link>
 
-              <Link
-                to="/products"
-                className="mt-6 flex max-w-2xl items-center gap-3 rounded-xl border border-[#bdd6da] bg-[#edf7f8] px-4 py-3.5 shadow-sm transition hover:border-[#91bbc2] hover:shadow-md"
-              >
+                <Link
+                  to="/stores"
+                  className="rounded-xl border border-[#a9cbd0] bg-white/70 px-5 py-3 text-xs font-black text-[#4d737b] transition duration-200 hover:bg-white"
+                >
+                  Explore stores
+                </Link>
 
-                <span className="text-lg">
-                  🔎
-                </span>
+              </div>
 
-                <span className="flex-1 text-xs font-semibold text-[#82766e] sm:text-sm">
-                  Search products, stores & categories
-                </span>
-
-                <span className="rounded-lg bg-[#674936] px-4 py-2 text-[10px] font-black uppercase tracking-wide text-[#f7f0e8]">
-                  Explore
-                </span>
-
-              </Link>
-
-
-              {/* QUICK CATEGORIES */}
-
-              <div className="mt-5 flex flex-wrap gap-2">
-
-                {["Electronics", "Fashion", "Beauty", "Home", "Sports"].map(
-                  (category) => (
-                    <Link
-                      key={category}
-                      to={`/products?category=${encodeURIComponent(category)}`}
-                      className="rounded-full border border-[#b8d1d5] bg-[#e9f3f4] px-3 py-1.5 text-[10px] font-bold text-[#55767d] transition hover:border-[#8ebbc2] hover:bg-[#d9ebee]"
-                    >
-                      {category}
-                    </Link>
-                  )
-                )}
-
+              <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-[9px] font-bold uppercase tracking-[0.12em] text-[#779096]">
+                <span>✓ Multiple stores</span>
+                <span>✓ Secure shopping</span>
+                <span>✓ One marketplace</span>
               </div>
 
             </div>
@@ -215,9 +281,9 @@ export default function Home() {
 
               <div className="absolute -inset-5 rounded-[3rem] bg-[#8fbfc7]/20 blur-3xl" />
 
-              <div className="relative rounded-[1.5rem] border border-[#bdd5d8] bg-[#cfe4e7] p-2.5 shadow-lg">
+              <div className="relative h-full rounded-[1.5rem] border border-[#bdd5d8] bg-[#cfe4e7] p-2.5 shadow-lg">
 
-                <div className="rounded-[1.15rem] bg-[#f0eee7] p-4">
+                <div className="flex h-full flex-col rounded-[1.15rem] bg-[#f0eee7] p-4">
 
                   <div className="flex items-center justify-between">
 
@@ -228,7 +294,7 @@ export default function Home() {
                       </p>
 
                       <h2 className="mt-0.5 text-lg font-black">
-                        Today's picks
+                        Explore today's picks
                       </h2>
 
                     </div>
@@ -239,16 +305,14 @@ export default function Home() {
 
                   </div>
 
+                  <div className="mt-4 grid flex-1 grid-cols-2 gap-2.5">
 
-                  <div className="mt-4 grid grid-cols-2 gap-2.5">
-
-                    <HeroTile emoji="👟" bg="bg-[#e7d9cd]" />
-                    <HeroTile emoji="🎧" bg="bg-[#d5e9ec]" />
-                    <HeroTile emoji="⌚" bg="bg-[#dce7df]" />
-                    <HeroTile emoji="💄" bg="bg-[#e8dadd]" />
+                    <HeroTile emoji="👟" label="Fashion" bg="bg-[#e7d9cd]" />
+                    <HeroTile emoji="🎧" label="Electronics" bg="bg-[#d5e9ec]" />
+                    <HeroTile emoji="⌚" label="Accessories" bg="bg-[#dce7df]" />
+                    <HeroTile emoji="💄" label="Beauty" bg="bg-[#e8dadd]" />
 
                   </div>
-
 
                   <div className="mt-3 rounded-xl bg-[#674936] px-4 py-3 text-[#f7f0e8]">
 
@@ -262,7 +326,7 @@ export default function Home() {
                         Many stores. One cart.
                       </p>
 
-                      <span>
+                      <span className="text-sm">
                         →
                       </span>
 
@@ -294,25 +358,25 @@ export default function Home() {
           <Benefit
             icon="🏪"
             title="Multiple stores"
-            text="Shop different vendors"
+            text="Different vendors, one place"
           />
 
           <Benefit
             icon="🔒"
             title="Secure checkout"
-            text="Protected shopping"
+            text="Shop with confidence"
           />
 
           <Benefit
             icon="📦"
             title="Easy ordering"
-            text="Simple experience"
+            text="Simple shopping experience"
           />
 
           <Benefit
             icon="🌐"
             title="One marketplace"
-            text="Everything together"
+            text="Everything connected"
           />
 
         </div>
@@ -321,42 +385,41 @@ export default function Home() {
 
 
       {/* =====================================================
-          SHOP BY CATEGORY
+          SHOP BY DEPARTMENT
       ===================================================== */}
 
-      <section className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
+      <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
 
         <SectionHeading
-          eyebrow="Browse"
-          title="Shop by category"
-          description="Find your next favourite without digging through the entire marketplace."
-          linkText="View all →"
+          eyebrow="Explore"
+          title="Shop by department"
+          description="Jump straight into the kind of things you're looking for."
+          linkText="View all products →"
           linkTo="/products"
         />
 
-
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
 
-          {categories.map((category) => (
+          {departments.map((department) => (
 
             <Link
-              key={category.name}
-              to={`/products?category=${encodeURIComponent(category.name)}`}
-              className="group rounded-xl border border-[#d9d1c7] bg-[#ebe7df] p-3 transition duration-200 hover:-translate-y-0.5 hover:border-[#a6cbd0] hover:bg-[#e5f1f2] hover:shadow-md"
+              key={department.name}
+              to={`/products?category=${encodeURIComponent(department.name)}`}
+              className="group rounded-2xl border border-[#d9d1c7] bg-[#9A623D] p-3 transition duration-200 hover:-translate-y-1 hover:border-[#a6cbd0] hover:bg-[#D4B08A] hover:shadow-md"
             >
 
               <div
-                className={`flex h-12 w-12 items-center justify-center rounded-xl ${category.color} text-2xl transition group-hover:scale-105`}
+                className={`flex h-14 w-14 items-center justify-center rounded-2xl ${department.bg} text-2xl transition duration-200 group-hover:scale-105`}
               >
-                {category.icon}
+                {department.icon}
               </div>
 
-              <h3 className="mt-3 text-xs font-black text-[#3b2e26]">
-                {category.name}
+              <h3 className="mt-3 text-[11px] font-black leading-4 text-[#3b2e26]">
+                {department.name}
               </h3>
 
-              <p className="mt-1 text-[9px] text-[#81766d]">
-                Explore →
+              <p className="mt-1 text-[9px] text-[#ffffff]">
+                {department.description}
               </p>
 
             </Link>
@@ -369,42 +432,57 @@ export default function Home() {
 
 
       {/* =====================================================
-          PROMOTIONAL STRIP
+          DEALS
       ===================================================== */}
 
-      <section className="mx-auto max-w-7xl px-5 lg:px-8">
+      <section className="border-y border-[#d8d0c5] bg-[#e7e2d9]">
 
-        <div className="relative overflow-hidden rounded-2xl bg-[#674936] px-6 py-6 text-[#f8f1e8] shadow-md">
+        <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
 
-          <div className="absolute -right-20 -top-24 h-56 w-56 rounded-full bg-[#a9d7dd]/15 blur-3xl" />
-
-          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-end justify-between gap-4">
 
             <div>
 
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#c9dfe2]">
-                ShopSphere spotlight
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#6597a0]">
+                Worth a look
               </p>
 
-              <h2 className="mt-1 text-xl font-black sm:text-2xl">
-                New stores. New products. New reasons to browse.
+              <h2 className="mt-1 text-xl font-black tracking-tight text-[#30251f] sm:text-2xl">
+                Everyday deals
               </h2>
 
-              <p className="mt-1.5 max-w-xl text-xs leading-5 text-[#ded1c6]">
-                Explore what's available across the marketplace and discover
-                something you didn't know you needed.
+              <p className="mt-1.5 text-xs text-[#7b7169]">
+                Some of the lowest-priced products currently available.
               </p>
 
             </div>
 
             <Link
-              to="/products"
-              className="shrink-0 rounded-lg bg-[#cce8eb] px-5 py-2.5 text-xs font-black text-[#466a72] transition hover:bg-[#e0f2f4]"
+              to="/products?sort=price-low"
+              className="shrink-0 text-xs font-black text-[#674936] transition hover:text-[#4f382a]"
             >
-              Shop now →
+              See all →
             </Link>
 
           </div>
+
+          {loadingProducts ? (
+
+            <ProductSkeleton />
+
+          ) : dealProducts.length === 0 ? (
+
+            <EmptyState
+              icon="🏷️"
+              title="Deals are coming"
+              description="Products will appear here once vendors add them."
+            />
+
+          ) : (
+
+            <ProductRail products={dealProducts} />
+
+          )}
 
         </div>
 
@@ -412,16 +490,16 @@ export default function Home() {
 
 
       {/* =====================================================
-          FEATURED PRODUCTS
+          POPULAR PRODUCTS
       ===================================================== */}
 
-      <section className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
+      <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
 
         <SectionHeading
-          eyebrow="Fresh picks"
-          title="Popular products"
-          description="A few things shoppers are checking out across the sphere."
-          linkText="See everything →"
+          eyebrow="Popular now"
+          title="Products worth discovering"
+          description="Explore products available across the ShopSphere marketplace."
+          linkText="Browse everything →"
           linkTo="/products"
         />
 
@@ -429,7 +507,7 @@ export default function Home() {
 
           <ProductSkeleton />
 
-        ) : products.length === 0 ? (
+        ) : popularProducts.length === 0 ? (
 
           <EmptyState
             icon="📦"
@@ -439,18 +517,7 @@ export default function Home() {
 
         ) : (
 
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-
-            {featuredProducts.map((product) => (
-
-              <ProductCard
-                key={product._id}
-                product={product}
-              />
-
-            ))}
-
-          </div>
+          <ProductRail products={popularProducts} />
 
         )}
 
@@ -461,18 +528,17 @@ export default function Home() {
           STORES
       ===================================================== */}
 
-      <section className="border-y border-[#d8d0c5] bg-[#e7e2d9]">
+      <section className="border-y border-[#d8d0c5] bg-[#ebe6dd]">
 
-        <div className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
+        <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
 
           <SectionHeading
             eyebrow="Marketplace"
-            title="Explore stores"
-            description="Different vendors, different products, one connected shopping experience."
-            linkText="All stores →"
+            title="Discover stores"
+            description="Meet the vendors behind the products you can shop on ShopSphere."
+            linkText="View all stores →"
             linkTo="/stores"
           />
-
 
           {loadingStores ? (
 
@@ -483,7 +549,7 @@ export default function Home() {
             <EmptyState
               icon="🏪"
               title="Stores are getting ready"
-              description="Vendor stores will appear here once they are created."
+              description="Vendor stores will appear here once they are active."
             />
 
           ) : (
@@ -495,7 +561,7 @@ export default function Home() {
                 <Link
                   key={store._id}
                   to={`/store/${store.slug}`}
-                  className="group rounded-xl border border-[#d5cdc2] bg-[#eeeae3] p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#a4c9cf] hover:bg-[#e4eff0] hover:shadow-md"
+                  className="group rounded-2xl border border-[#d5cdc2] bg-[#f0ece5] p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#a4c9cf] hover:bg-[#e4eff0] hover:shadow-md"
                 >
 
                   <div className="flex items-center gap-3">
@@ -529,7 +595,6 @@ export default function Home() {
 
                   </div>
 
-
                   <div className="mt-4 flex items-center justify-between border-t border-[#d9d0c5] pt-3">
 
                     <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8a7c71]">
@@ -556,33 +621,22 @@ export default function Home() {
 
 
       {/* =====================================================
-          TRENDING
+          MORE PRODUCTS
       ===================================================== */}
 
-      {trendingProducts.length > 0 && (
+      {moreProducts.length > 0 && (
 
-        <section className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
+        <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
 
           <SectionHeading
-            eyebrow="Trending now"
+            eyebrow="Keep exploring"
             title="More to discover"
-            description="Keep exploring. Your next favourite might be hiding here."
-            linkText="Browse all →"
+            description="There is always another product waiting around the corner."
+            linkText="See all products →"
             linkTo="/products"
           />
 
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-
-            {trendingProducts.map((product) => (
-
-              <ProductCard
-                key={product._id}
-                product={product}
-              />
-
-            ))}
-
-          </div>
+          <ProductRail products={moreProducts} />
 
         </section>
 
@@ -590,14 +644,14 @@ export default function Home() {
 
 
       {/* =====================================================
-          WHY SHOPSPHERE
+          MARKETPLACE STATS
       ===================================================== */}
 
       <section className="bg-[#18372f]">
 
-        <div className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
+        <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
 
-          <div className="grid gap-7 lg:grid-cols-[.85fr_1.15fr] lg:items-center">
+          <div className="grid gap-7 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
 
             <div>
 
@@ -606,28 +660,40 @@ export default function Home() {
               </p>
 
               <h2 className="mt-2 text-2xl font-black leading-tight text-[#f2eee7] sm:text-3xl">
-
-                Shopping shouldn't feel
+                One place.
                 <span className="block text-[#a8dce2]">
-                  scattered everywhere.
+                  Plenty to discover.
                 </span>
-
               </h2>
 
               <p className="mt-3 max-w-md text-xs leading-5 text-[#b9c9c3]">
-                ShopSphere brings different stores together so you can
-                discover, compare and shop from one marketplace.
+                Different vendors and products come together in one
+                connected shopping experience.
               </p>
 
             </div>
 
-
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
 
-              <DarkStat value="100+" label="Products" />
-              <DarkStat value="20+" label="Stores" />
-              <DarkStat value="24/7" label="Shopping" />
-              <DarkStat value="1" label="Marketplace" />
+              <DarkStat
+                value={productCount}
+                label="Products loaded"
+              />
+
+              <DarkStat
+                value={storeCount}
+                label="Stores available"
+              />
+
+              <DarkStat
+                value="24/7"
+                label="Shopping"
+              />
+
+              <DarkStat
+                value="1"
+                label="Marketplace"
+              />
 
             </div>
 
@@ -642,9 +708,9 @@ export default function Home() {
           FINAL CTA
       ===================================================== */}
 
-      <section className="mx-auto max-w-7xl px-5 py-9 lg:px-8">
+      <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
 
-        <div className="relative overflow-hidden rounded-2xl bg-[#c9e2e5] px-6 py-7 shadow-sm">
+        <div className="relative overflow-hidden rounded-[1.5rem] bg-[#c9e2e5] px-6 py-8 shadow-sm sm:px-8">
 
           <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-[#91bec5]/25 blur-3xl" />
 
@@ -657,15 +723,15 @@ export default function Home() {
               </p>
 
               <h2 className="mt-1 text-xl font-black text-[#30251f] sm:text-2xl">
-                Find something worth bringing home.
+                Your next favourite is somewhere in the sphere.
               </h2>
 
-              <p className="mt-1.5 text-xs text-[#70665e]">
-                Browse products or explore stores across ShopSphere.
+              <p className="mt-1.5 max-w-xl text-xs text-[#70665e]">
+                Browse products, discover stores and find something worth
+                bringing home.
               </p>
 
             </div>
-
 
             <div className="flex flex-wrap gap-2">
 
@@ -722,7 +788,6 @@ export default function Home() {
 
             </div>
 
-
             <FooterColumn
               title="Shop"
               links={[
@@ -733,7 +798,6 @@ export default function Home() {
               ]}
             />
 
-
             <FooterColumn
               title="Account"
               links={[
@@ -743,7 +807,6 @@ export default function Home() {
                 ["Wishlist", "/wishlist"],
               ]}
             />
-
 
             <div>
 
@@ -760,11 +823,8 @@ export default function Home() {
 
           </div>
 
-
           <div className="mt-7 border-t border-[#c9c0b5] pt-4 text-[10px] text-[#82766d]">
-
             © 2026 ShopSphere. Built for discovering more.
-
           </div>
 
         </div>
@@ -780,89 +840,43 @@ export default function Home() {
    HERO TILE
 ========================================================= */
 
-function HeroTile({ emoji, bg }) {
+function HeroTile({ emoji, label, bg }) {
   return (
     <div
-      className={`flex h-28 items-center justify-center rounded-xl ${bg} text-4xl shadow-sm transition duration-200 hover:scale-[1.02]`}
+      className={`group relative flex min-h-[115px] items-center justify-center overflow-hidden rounded-xl ${bg} text-4xl shadow-sm transition duration-200 hover:scale-[1.02]`}
     >
-      {emoji}
+      <span className="transition duration-200 group-hover:scale-110">
+        {emoji}
+      </span>
+
+      <span className="absolute bottom-2 left-2.5 rounded-md bg-white/70 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-[#5e554d] backdrop-blur-sm">
+        {label}
+      </span>
     </div>
   );
 }
 
 
 /* =========================================================
-   PRODUCT CARD
+   PRODUCT RAIL
 ========================================================= */
 
-function ProductCard({ product }) {
+function ProductRail({ products }) {
   return (
-    <Link
-      to="/products"
-      className="group overflow-hidden rounded-xl border border-[#d8d0c5] bg-[#ebe7df] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[#a5cbd0] hover:bg-[#e6f0f1] hover:shadow-md"
-    >
+    <div className="mt-6 flex gap-3 overflow-x-auto pb-3 scrollbar-hide">
 
-      <div className="relative h-40 overflow-hidden bg-[#d7e7e8] sm:h-44">
+      {products.map((product) => (
 
-        {product.images?.[0] ? (
+        <ProductCard
+          key={product._id}
+          product={product}
+        />
 
-          <img
-            src={product.images[0]}
-            alt={product.name}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-          />
+      ))}
 
-        ) : (
-
-          <div className="flex h-full items-center justify-center text-5xl">
-            🛍️
-          </div>
-
-        )}
-
-        <span className="absolute left-2.5 top-2.5 rounded-full bg-[#674936] px-2.5 py-1 text-[8px] font-black uppercase tracking-wider text-[#f7f0e7]">
-          {product.category || "Featured"}
-        </span>
-
-      </div>
-
-
-      <div className="p-3">
-
-        <p className="text-[8px] font-black uppercase tracking-[0.15em] text-[#64939c]">
-          ShopSphere
-        </p>
-
-        <h3 className="mt-1 line-clamp-1 text-xs font-black text-[#392d26] sm:text-sm">
-          {product.name || "Product"}
-        </h3>
-
-        <div className="mt-3 flex items-end justify-between gap-2">
-
-          <div>
-
-            <p className="text-[8px] text-[#91867c]">
-              Price
-            </p>
-
-            <p className="mt-0.5 text-base font-black text-[#30251f]">
-              ₹{product.price ?? "—"}
-            </p>
-
-          </div>
-
-          <span className="rounded-md bg-[#674936] px-2.5 py-1.5 text-[8px] font-black text-[#f8f1e8] transition group-hover:bg-[#543a2b]">
-            View
-          </span>
-
-        </div>
-
-      </div>
-
-    </Link>
+    </div>
   );
 }
-
 
 /* =========================================================
    SECTION HEADING
@@ -893,7 +907,6 @@ function SectionHeading({
         </p>
 
       </div>
-
 
       {linkText && linkTo && (
 
@@ -1029,13 +1042,13 @@ function EmptyState({
 
 function ProductSkeleton() {
   return (
-    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="mt-6 flex gap-3 overflow-hidden">
 
-      {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+      {[1, 2, 3, 4, 5, 6].map((item) => (
 
         <div
           key={item}
-          className="h-64 animate-pulse rounded-xl bg-[#dfd9cf]"
+          className="h-72 w-[190px] shrink-0 animate-pulse rounded-2xl bg-[#dfd9cf] sm:w-[210px]"
         />
 
       ))}
@@ -1057,7 +1070,7 @@ function StoreSkeleton() {
 
         <div
           key={item}
-          className="h-32 animate-pulse rounded-xl bg-[#dcd6cc]"
+          className="h-32 animate-pulse rounded-2xl bg-[#dcd6cc]"
         />
 
       ))}
