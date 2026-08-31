@@ -31,18 +31,73 @@ export async function addToCart(req, res) {
 }
 
 export async function updateCartItem(req, res) {
-  const { quantity } = req.body;
-  if (Number(quantity) < 1) return res.status(400).json({ message: "Quantity must be at least 1" });
+  try {
+    const quantity = Number(req.body.quantity);
 
-  const cart = await getOrCreateCart(req.user._id);
-  const item = cart.items.find((i) => i.productId.toString() === req.params.productId);
-  if (!item) return res.status(404).json({ message: "Cart item not found" });
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      return res.status(400).json({
+        message: "Quantity must be at least 1",
+      });
+    }
 
-  item.quantity = Number(quantity);
-  await cart.save();
-  await cart.populate("items.productId", "name price images stock storeId");
-  res.json({ cart });
+    const product = await Product.findById(
+      req.params.productId
+    );
+
+    if (!product || !product.active) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    if (quantity > product.stock) {
+      return res.status(400).json({
+        message: `Only ${product.stock} item${
+          product.stock === 1 ? "" : "s"
+        } available in stock.`,
+      });
+    }
+
+    const cart = await getOrCreateCart(
+      req.user._id
+    );
+
+    const item = cart.items.find(
+      (i) =>
+        i.productId.toString() ===
+        req.params.productId
+    );
+
+    if (!item) {
+      return res.status(404).json({
+        message: "Cart item not found",
+      });
+    }
+
+    item.quantity = quantity;
+
+    await cart.save();
+
+    await cart.populate(
+      "items.productId",
+      "name price images stock storeId"
+    );
+
+    res.json({
+      cart,
+    });
+  } catch (error) {
+    console.error(
+      "UPDATE CART ITEM ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Unable to update cart item.",
+    });
+  }
 }
+
 
 export async function removeCartItem(req, res) {
   const cart = await getOrCreateCart(req.user._id);
