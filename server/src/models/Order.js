@@ -30,9 +30,18 @@ const orderSchema = new mongoose.Schema(
       enum: ["PLACED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"],
       default: "PLACED"
     },
-    razorpayOrderId: String,
-    razorpayPaymentId: String,
 
+    razorpayOrderId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+
+    razorpayPaymentId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     stripeSessionId: {
       type: String,
       unique: true,

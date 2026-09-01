@@ -1,266 +1,171 @@
-import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
-import Store from "../models/Store.js";
-import User from "../models/User.js";
-import { sendOrderEmail } from "../utils/email.js";
+import { createOrderFromCart } from "../services/orderService.js";
 
 export async function createOrder(req, res) {
   try {
     const { shippingAddress } = req.body;
-    const cart = await Cart.findOne({
-      customerId: req.user._id,
-    }).populate("items.productId");
-
-    if (!cart || !cart.items.length) {
-      return res.status(400).json({
-        message: "Cart is empty",
-      });
-    }
-
-    const firstProduct =
-      cart.items[0].productId;
-
-    if (!firstProduct) {
-      return res.status(400).json({
-        message:
-          "One or more products are no longer available",
-      });
-    }
-
-    const firstStoreId =
-      firstProduct.storeId;
-
-    const store =
-      await Store.findOne({
-        _id: firstStoreId,
-        status: "ACTIVE",
-      });
-
-    if (!store) {
-      return res.status(400).json({
-        message:
-          "This store is no longer available",
-      });
-    }
-
-    const vendor =
-      await User.findOne({
-        _id: store.vendorId,
-        role: "VENDOR",
-        status: "ACTIVE",
-      });
-
-    if (!vendor) {
-      return res.status(400).json({
-        message:
-          "This store is no longer available because its vendor is inactive or deleted.",
-      });
-    }
-
-    const mixedStore =
-      cart.items.some(
-        (item) => {
-          if (!item.productId) {
-            return true;
-          }
-
-          return (
-            item.productId.storeId.toString() !==
-            firstStoreId.toString()
-          );
-        }
-      );
-
-    if (mixedStore) {
-      return res.status(400).json({
-        message:
-          "This MVP supports one store per order. Split your cart by store.",
-      });
-    }
-
-    let total = 0;
-    const items = [];
-
-    for (const item of cart.items) {
-      const product =
-        await Product.findById(
-          item.productId._id
-        );
-
-      if (
-        !product ||
-        !product.active
-      ) {
-        return res.status(400).json({
-          message:
-            "One or more products are no longer available",
-        });
-      }
-
-      if (
-        product.storeId.toString() !==
-        store._id.toString()
-      ) {
-        return res.status(400).json({
-          message:
-            "Product does not belong to this store",
-        });
-      }
-
-      if (
-        product.vendorId.toString() !==
-        vendor._id.toString()
-      ) {
-        return res.status(400).json({
-          message:
-            "Product vendor is invalid",
-        });
-      }
-
-      if (
-        product.stock <
-        item.quantity
-      ) {
-        return res.status(400).json({
-          message:
-            `Insufficient stock for ${product.name}`,
-        });
-      }
-
-      total +=
-        product.price *
-        item.quantity;
-
-      items.push({
-        productId:
-          product._id,
-        name:
-          product.name,
-        quantity:
-          item.quantity,
-        price:
-          product.price,
-      });
-    }
 
     if (
-  !shippingAddress ||
-  !shippingAddress.fullName ||
-  !shippingAddress.phone ||
-  !shippingAddress.addressLine ||
-  !shippingAddress.city ||
-  !shippingAddress.state ||
-  !shippingAddress.pincode
-) {
-  return res.status(400).json({
-    message: "Complete shipping address is required",
-  });
-}
-
-  const order = await Order.create({
-  customerId: req.user._id,
-  storeId: store._id,
-  vendorId: vendor._id,
-  items,
-  total,
-  shippingAddress,
-  paymentStatus: "PENDING",
-  status: "PLACED",
-});
-
-    for (const item of cart.items) {
-      await Product.findByIdAndUpdate(
-        item.productId._id,
-        {
-          $inc: {
-            stock:
-              -item.quantity,
-          },
-        }
-      );
+      !shippingAddress ||
+      !shippingAddress.fullName ||
+      !shippingAddress.phone ||
+      !shippingAddress.addressLine ||
+      !shippingAddress.city ||
+      !shippingAddress.state ||
+      !shippingAddress.pincode
+    ) {
+      return res.status(400).json({
+        message: "Complete shipping address is required",
+      });
     }
 
-    cart.items = [];
-    await cart.save();
-
-    await sendOrderEmail({
-      to: req.user.email,
-      orderId:
-        order._id.toString(),
-      total,
+    const order = await createOrderFromCart({
+      customerId: req.user._id,
+      shippingAddress,
+      paymentStatus: "PENDING",
     });
 
     res.status(201).json({
-      message:
-        "Order placed successfully",
+      message: "Order placed successfully",
       order,
     });
   } catch (error) {
-    console.error(
-      "CREATE ORDER ERROR:",
-      error
-    );
+    console.error("CREATE ORDER ERROR:", error);
 
-    res.status(500).json({
+    res.status(400).json({
       message:
+        error.message ||
         "Failed to create order",
     });
   }
 }
 
 export async function myOrders(req, res) {
-  const orders = await Order.find({
-    customerId: req.user._id,
-  }).sort({
-    createdAt: -1,
-  });
+  try {
+    const orders = await Order.find({
+      customerId: req.user._id,
+    })
+      .populate("storeId", "name")
+      .sort({ createdAt: -1 });
 
-  res.json({ orders });
+    res.json({ orders });
+  } catch (error) {
+    console.error("MY ORDERS ERROR:", error);
+
+    res.status(500).json({
+      message: "Failed to fetch orders",
+    });
+  }
 }
 
 export async function vendorOrders(req, res) {
-  const orders = await Order.find({
-    vendorId: req.user._id,
-  }).sort({
-    createdAt: -1,
-  });
+  try {
+    const orders = await Order.find({
+      vendorId: req.user._id,
+    })
+      .populate("storeId", "name")
+      .sort({ createdAt: -1 });
 
-  res.json({ orders });
+    res.json({ orders });
+  } catch (error) {
+    console.error("VENDOR ORDERS ERROR:", error);
+
+    res.status(500).json({
+      message: "Failed to fetch vendor orders",
+    });
+  }
 }
 
 export async function updateOrderStatus(req, res) {
-  const order = await Order.findOne({
-    _id: req.params.id,
-    vendorId: req.user._id,
-  });
+  try {
+    const order = await Order.findOne({
+      _id: req.params.id,
+      vendorId: req.user._id,
+    });
 
-  if (!order) {
-    return res.status(404).json({
-      message: "Order not found",
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found",
+      });
+    }
+
+    const newStatus = req.body.status;
+
+    const allowedStatuses = [
+      "PLACED",
+      "PROCESSING",
+      "SHIPPED",
+      "DELIVERED",
+      "CANCELLED",
+    ];
+
+    if (!allowedStatuses.includes(newStatus)) {
+      return res.status(400).json({
+        message: "Invalid order status",
+      });
+    }
+
+    if (
+      newStatus === "CANCELLED" &&
+      order.status !== "CANCELLED"
+    ) {
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(
+          item.productId,
+          {
+            $inc: {
+              stock: item.quantity,
+            },
+          }
+        );
+      }
+    }
+
+    order.status = newStatus;
+
+    await order.save();
+
+    res.json({ order });
+  } catch (error) {
+    console.error("UPDATE ORDER STATUS ERROR:", error);
+
+    res.status(500).json({
+      message: "Failed to update order status",
     });
   }
+}
 
-  const newStatus = req.body.status;
-
-  const allowedStatuses = [
-    "PLACED",
-    "PROCESSING",
-    "SHIPPED",
-    "DELIVERED",
-    "CANCELLED",
-  ];
-
-  if (!allowedStatuses.includes(newStatus)) {
-    return res.status(400).json({
-      message: "Invalid order status",
+export async function cancelOrder(req, res) {
+  try {
+    const order = await Order.findOne({
+      _id: req.params.id,
+      customerId: req.user._id,
     });
-  }
 
-  if (
-    newStatus === "CANCELLED" &&
-    order.status !== "CANCELLED"
-  ) {
+    if (!order) {
+      return res.status(404).json({
+        message: "Order not found",
+      });
+    }
+
+    if (order.status === "CANCELLED") {
+      return res.status(400).json({
+        message: "Order is already cancelled",
+      });
+    }
+
+    if (
+      !["PLACED", "PROCESSING"].includes(
+        order.status
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "This order can no longer be cancelled",
+      });
+    }
+
     for (const item of order.items) {
       await Product.findByIdAndUpdate(
         item.productId,
@@ -271,62 +176,20 @@ export async function updateOrderStatus(req, res) {
         }
       );
     }
-  }
 
-  order.status = newStatus;
+    order.status = "CANCELLED";
 
-  await order.save();
+    await order.save();
 
-  res.json({ order });
-}
+    res.json({
+      message: "Order cancelled successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("CANCEL ORDER ERROR:", error);
 
-export async function cancelOrder(req, res) {
-  const order = await Order.findOne({
-    _id: req.params.id,
-    customerId: req.user._id,
-  });
-
-  if (!order) {
-    return res.status(404).json({
-      message: "Order not found",
+    res.status(500).json({
+      message: "Failed to cancel order",
     });
   }
-
-  if (order.status === "CANCELLED") {
-    return res.status(400).json({
-      message: "Order is already cancelled",
-    });
-  }
-
-  if (
-    !["PLACED", "PROCESSING"].includes(
-      order.status
-    )
-  ) {
-    return res.status(400).json({
-      message:
-        "This order can no longer be cancelled",
-    });
-  }
-
-  for (const item of order.items) {
-    await Product.findByIdAndUpdate(
-      item.productId,
-      {
-        $inc: {
-          stock: item.quantity,
-        },
-      }
-    );
-  }
-
-  order.status = "CANCELLED";
-
-  await order.save();
-
-  res.json({
-    message:
-      "Order cancelled successfully",
-    order,
-  });
 }
