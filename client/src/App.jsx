@@ -14,6 +14,7 @@ import Register from "./pages/Register.jsx";
 import Stores from "./pages/Stores.jsx";
 import Store from "./pages/Store.jsx";
 import Products from "./pages/Products.jsx";
+import ProductDetails from "./pages/ProductDetails.jsx";
 import Cart from "./pages/Cart.jsx";
 import CustomerOrders from "./pages/CustomerOrders.jsx";
 import VendorDashboard from "./pages/VendorDashboard.jsx";
@@ -70,6 +71,11 @@ export default function App() {
         <Route
           path="/products"
           element={<Products />}
+        />
+
+        <Route
+          path="/product/:id"
+          element={<ProductDetails />}
         />
 
         <Route

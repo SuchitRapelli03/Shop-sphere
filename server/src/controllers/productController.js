@@ -2,6 +2,10 @@ import Product from "../models/Product.js";
 import Store from "../models/Store.js";
 import User from "../models/User.js";
 
+/* =========================
+   CREATE PRODUCT
+========================= */
+
 export async function createProduct(req, res) {
   try {
     const {
@@ -14,6 +18,12 @@ export async function createProduct(req, res) {
       images,
     } = req.body;
 
+    if (!storeId || !name || price === undefined) {
+      return res.status(400).json({
+        message: "Store, product name and price are required",
+      });
+    }
+
     const store = await Store.findOne({
       _id: storeId,
       vendorId: req.user._id,
@@ -22,28 +32,24 @@ export async function createProduct(req, res) {
 
     if (!store) {
       return res.status(403).json({
-        message:
-          "You do not own this active store",
+        message: "You do not own this active store",
       });
     }
 
     const product = await Product.create({
       storeId,
       vendorId: req.user._id,
-      name,
-      description,
-      price,
-      stock,
-      category,
-      images: images || [],
+      name: name.trim(),
+      description: description?.trim() || "",
+      price: Number(price),
+      stock: Number(stock ?? 0),
+      category: category?.trim() || "",
+      images: Array.isArray(images) ? images : [],
     });
 
     res.status(201).json({ product });
   } catch (error) {
-    console.error(
-      "CREATE PRODUCT ERROR:",
-      error
-    );
+    console.error("CREATE PRODUCT ERROR:", error);
 
     res.status(500).json({
       message: "Failed to create product",
@@ -80,34 +86,48 @@ export async function listProducts(req, res) {
       filter.category = category;
     }
 
-    if (search) {
+    if (search?.trim()) {
+      const safeSearch = search
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
       filter.$or = [
         {
           name: {
-            $regex: search,
+            $regex: safeSearch,
             $options: "i",
           },
         },
         {
           description: {
-            $regex: search,
+            $regex: safeSearch,
             $options: "i",
           },
         },
       ];
     }
 
-    if (minPrice || maxPrice) {
+    if (minPrice !== undefined || maxPrice !== undefined) {
       filter.price = {};
 
-      if (minPrice) {
-        filter.price.$gte =
-          Number(minPrice);
+      if (minPrice !== undefined && minPrice !== "") {
+        const minimum = Number(minPrice);
+
+        if (!Number.isNaN(minimum) && minimum >= 0) {
+          filter.price.$gte = minimum;
+        }
       }
 
-      if (maxPrice) {
-        filter.price.$lte =
-          Number(maxPrice);
+      if (maxPrice !== undefined && maxPrice !== "") {
+        const maximum = Number(maxPrice);
+
+        if (!Number.isNaN(maximum) && maximum >= 0) {
+          filter.price.$lte = maximum;
+        }
+      }
+
+      if (Object.keys(filter.price).length === 0) {
+        delete filter.price;
       }
     }
 
@@ -116,75 +136,105 @@ export async function listProducts(req, res) {
     };
 
     if (sort === "price-low") {
-      sortOption = { price: 1 };
+      sortOption = {
+        price: 1,
+      };
     }
 
     if (sort === "price-high") {
-      sortOption = { price: -1 };
+      sortOption = {
+        price: -1,
+      };
     }
 
     if (sort === "name") {
-      sortOption = { name: 1 };
+      sortOption = {
+        name: 1,
+      };
     }
 
-    const currentPage =
-      Math.max(Number(page), 1);
+    const currentPage = Math.max(
+      Number(page) || 1,
+      1
+    );
 
-    const itemsPerPage =
-      Math.min(
-        Math.max(Number(limit), 1),
-        50
-      );
+    const itemsPerPage = Math.min(
+      Math.max(Number(limit) || 12, 1),
+      50
+    );
 
     const skip =
-      (currentPage - 1) *
-      itemsPerPage;
+      (currentPage - 1) * itemsPerPage;
 
-    const products =
-  await Product.find(filter)
-    .populate(
-      "storeId",
-      "name slug status vendorId"
-    )
-    .populate(
-      "vendorId",
-      "name email status"
-    )
-    .sort(sortOption);
+    /*
+     * Only products whose store is ACTIVE
+     * are considered public.
+     */
+    const stores = await Store.find({
+      status: "ACTIVE",
+    }).select("_id vendorId");
 
-const validProducts =
-  products.filter(
-    (product) =>
-      product.storeId &&
-      product.storeId.status === "ACTIVE" &&
-      product.vendorId &&
-      product.vendorId.status === "ACTIVE" &&
-      product.storeId.vendorId &&
-      product.storeId.vendorId.toString() ===
-        product.vendorId._id.toString()
-  );
+    const activeStoreIds = stores.map(
+      (store) => store._id
+    );
 
-const total = validProducts.length;
+    filter.storeId = storeId
+      ? storeId
+      : { $in: activeStoreIds };
 
-const paginatedProducts =
-  validProducts.slice(
-    skip,
-    skip + itemsPerPage
-  );
+    /*
+     * Get products first.
+     */
+    const products = await Product.find(filter)
+      .populate(
+        "storeId",
+        "name slug status vendorId"
+      )
+      .populate(
+        "vendorId",
+        "name email status"
+      )
+      .sort(sortOption);
 
-res.json({
-  products: paginatedProducts,
+    /*
+     * Make sure:
+     * - store exists
+     * - store is ACTIVE
+     * - vendor exists
+     * - vendor is ACTIVE
+     * - store belongs to that vendor
+     */
+    const validProducts = products.filter(
+      (product) =>
+        product.storeId &&
+        product.storeId.status === "ACTIVE" &&
+        product.vendorId &&
+        product.vendorId.status === "ACTIVE" &&
+        product.storeId.vendorId &&
+        product.storeId.vendorId.toString() ===
+          product.vendorId._id.toString()
+    );
 
-  pagination: {
-    page: currentPage,
-    limit: itemsPerPage,
-    total,
-    pages: Math.ceil(
-      total / itemsPerPage
-    ),
-  },
-});
-   } catch (error) {
+    const total = validProducts.length;
+
+    const paginatedProducts =
+      validProducts.slice(
+        skip,
+        skip + itemsPerPage
+      );
+
+    res.json({
+      products: paginatedProducts,
+      pagination: {
+        page: currentPage,
+        limit: itemsPerPage,
+        total,
+        pages: Math.ceil(
+          total / itemsPerPage
+        ),
+      },
+    });
+  } catch (error) {
     console.error(
       "PRODUCT SEARCH ERROR:",
       error
@@ -235,7 +285,10 @@ export async function listVendorProducts(
    GET PRODUCT
 ========================= */
 
-export async function getProduct(req, res) {
+export async function getProduct(
+  req,
+  res
+) {
   try {
     const product =
       await Product.findById(
@@ -259,6 +312,7 @@ export async function getProduct(req, res) {
       !product.vendorId ||
       product.vendorId.status !==
         "ACTIVE" ||
+      !product.storeId.vendorId ||
       product.storeId.vendorId.toString() !==
         product.vendorId._id.toString()
     ) {
@@ -302,14 +356,85 @@ export async function updateProduct(
       });
     }
 
-    Object.assign(
-      product,
-      req.body
-    );
+    const {
+      name,
+      description,
+      price,
+      stock,
+      category,
+      images,
+      active,
+    } = req.body;
+
+    if (name !== undefined) {
+      if (!name.trim()) {
+        return res.status(400).json({
+          message:
+            "Product name cannot be empty",
+        });
+      }
+
+      product.name = name.trim();
+    }
+
+    if (description !== undefined) {
+      product.description =
+        description.trim();
+    }
+
+    if (price !== undefined) {
+      const numericPrice = Number(price);
+
+      if (
+        Number.isNaN(numericPrice) ||
+        numericPrice < 0
+      ) {
+        return res.status(400).json({
+          message:
+            "Price must be a valid non-negative number",
+        });
+      }
+
+      product.price = numericPrice;
+    }
+
+    if (stock !== undefined) {
+      const numericStock = Number(stock);
+
+      if (
+        Number.isNaN(numericStock) ||
+        numericStock < 0
+      ) {
+        return res.status(400).json({
+          message:
+            "Stock must be a valid non-negative number",
+        });
+      }
+
+      product.stock = numericStock;
+    }
+
+    if (category !== undefined) {
+      product.category =
+        category.trim();
+    }
+
+    if (images !== undefined) {
+      product.images =
+        Array.isArray(images)
+          ? images
+          : [];
+    }
+
+    if (active !== undefined) {
+      product.active = Boolean(active);
+    }
 
     await product.save();
 
-    res.json({ product });
+    res.json({
+      product,
+    });
   } catch (error) {
     console.error(
       "UPDATE PRODUCT ERROR:",
