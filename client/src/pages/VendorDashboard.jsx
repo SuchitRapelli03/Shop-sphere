@@ -421,11 +421,11 @@ export default function VendorDashboard() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f5f7f6]">
+      <div className="flex min-h-screen items-center justify-center bg-[#f5f1e8]">
         <div className="text-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-[#0f766e] border-t-transparent" />
 
-          <p className="mt-3 text-sm font-medium text-slate-600">
+          <p className="mt-3 text-sm font-medium text-[#6b6258]">
             Loading dashboard...
           </p>
         </div>
@@ -439,19 +439,19 @@ export default function VendorDashboard() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f5f7f6] p-6">
+      <div className="flex min-h-screen items-center justify-center bg-[#f5f1e8] p-6">
         <div className="w-full max-w-sm rounded-2xl border border-red-100 bg-white p-6 text-center shadow-sm">
           <h2 className="text-lg font-bold text-red-600">
             Failed to Load Dashboard
           </h2>
 
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-[#6b6258]">
             {error}
           </p>
 
           <button
             onClick={loadDashboard}
-            className="mt-5 rounded-xl bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800"
+            className="mt-5 rounded-xl bg-[#0f766e] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#115e59]"
           >
             Try Again
           </button>
@@ -461,25 +461,27 @@ export default function VendorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f7f6]">
+    <div className="min-h-screen bg-[#f5f1e8]">
 
       {/* =====================================================
           SIDEBAR
+          Starts BELOW the global Navbar.jsx
+          Global navbar remains full width above it.
       ===================================================== */}
 
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-white/10 bg-[#0d3b2e] text-white transition-all duration-500 ${
+        className={`fixed left-0 top-[72px] z-30 flex h-[calc(100vh-72px)] flex-col border-r border-white/10 bg-[#0d3b2e] text-white shadow-xl transition-all duration-500 ${
           sidebarOpen
-            ? "w-30"
+            ? "w-[230px]"
             : "w-0 overflow-hidden"
         }`}
       >
 
         {/* Logo */}
 
-        <div className="flex h-[68px] items-center gap-3 border-b border-white/10 px-5">
+        <div className="flex h-[68px] shrink-0 items-center gap-3 border-b border-white/10 px-5">
 
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-400/15 text-emerald-300">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#0f766e]/20 text-[#7dd3c7]">
 
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -497,7 +499,7 @@ export default function VendorDashboard() {
               ShopSphere
             </p>
 
-            <p className="text-[11px] text-emerald-200/60">
+            <p className="text-[11px] text-[#b7d8d2]/70">
               Vendor Panel
             </p>
           </div>
@@ -542,8 +544,8 @@ export default function VendorDashboard() {
               onClick={() => setActiveTab(item.id)}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm transition ${
                 activeTab === item.id
-                  ? "bg-emerald-400/15 text-white"
-                  : "text-emerald-100/65 hover:bg-white/5 hover:text-white"
+                  ? "bg-[#0f766e]/25 text-white"
+                  : "text-[#c7ddd8]/70 hover:bg-white/5 hover:text-white"
               }`}
             >
 
@@ -558,7 +560,7 @@ export default function VendorDashboard() {
               </span>
 
               {item.badge > 0 && (
-                <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-bold text-emerald-200">
+                <span className="rounded-full bg-[#0f766e]/25 px-2 py-0.5 text-[10px] font-bold text-[#b7d8d2]">
                   {item.badge}
                 </span>
               )}
@@ -575,7 +577,7 @@ export default function VendorDashboard() {
 
           <div className="flex items-center gap-3 rounded-xl bg-white/5 p-2.5">
 
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-400/20 text-xs font-bold text-emerald-100">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0f766e]/25 text-xs font-bold text-[#c7ddd8]">
               V
             </div>
 
@@ -585,7 +587,7 @@ export default function VendorDashboard() {
                 Vendor Account
               </p>
 
-              <p className="truncate text-[10px] text-emerald-200/50">
+              <p className="truncate text-[10px] text-[#b7d8d2]/50">
                 Store Admin
               </p>
 
@@ -604,16 +606,18 @@ export default function VendorDashboard() {
       <main
         className={`min-h-screen transition-all duration-500 ${
           sidebarOpen
-            ? "ml-56"
+            ? "ml-[230px]"
             : "ml-0"
         }`}
       >
 
         {/* ===================================================
-            TOP NAVBAR
+            DASHBOARD HEADER
+            This is NOT the global Navbar.jsx.
+            It lives inside the dashboard content area.
         =================================================== */}
 
-        <header className="sticky top-0 z-30 flex h-[68px] items-center justify-between border-b border-slate-200/70 bg-white/90 px-5 backdrop-blur-md lg:px-6">
+        <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-[#ded6c9] bg-[#fbfaf6]/95 px-5 backdrop-blur-md lg:px-6">
 
           <div className="flex min-w-0 items-center gap-3">
 
@@ -623,7 +627,7 @@ export default function VendorDashboard() {
               onClick={() =>
                 setSidebarOpen(!sidebarOpen)
               }
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#ded6c9] bg-white text-[#5f574e] shadow-sm transition hover:border-[#8fc9c1] hover:bg-[#edf7f5] hover:text-[#0f766e]"
               title={
                 sidebarOpen
                   ? "Close sidebar"
@@ -667,7 +671,7 @@ export default function VendorDashboard() {
 
             <div className="min-w-0">
 
-              <h1 className="truncate text-lg font-bold text-slate-900">
+              <h1 className="truncate text-lg font-bold text-[#3f382f]">
                 {activeTab === "overview" &&
                   "Overview"}
 
@@ -684,7 +688,7 @@ export default function VendorDashboard() {
                   "Analytics"}
               </h1>
 
-              <p className="hidden text-xs text-slate-500 sm:block">
+              <p className="hidden text-xs text-[#81786d] sm:block">
                 Manage your stores, products & orders
               </p>
 
@@ -694,7 +698,7 @@ export default function VendorDashboard() {
 
           <button
             onClick={loadDashboard}
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[#ded6c9] bg-white px-3 py-2 text-xs font-semibold text-[#5f574e] shadow-sm transition hover:border-[#8fc9c1] hover:bg-[#edf7f5] hover:text-[#0f766e]"
           >
             <span className="text-sm">↻</span>
             Refresh
@@ -750,26 +754,26 @@ export default function VendorDashboard() {
 
                   <div
                     key={card.label}
-                    className="rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm transition hover:shadow-md"
+                    className="rounded-xl border border-[#ded6c9] bg-white p-4 shadow-sm transition hover:shadow-md"
                   >
 
                     <div className="flex items-center justify-between">
 
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-sm font-bold text-emerald-700">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#edf7f5] text-sm font-bold text-[#0f766e]">
                         {card.icon}
                       </div>
 
-                      <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">
+                      <span className="rounded-full bg-[#edf7f5] px-2 py-1 text-[10px] font-medium text-[#0f766e]">
                         {card.change}
                       </span>
 
                     </div>
 
-                    <p className="mt-4 text-xs font-medium text-slate-500">
+                    <p className="mt-4 text-xs font-medium text-[#81786d]">
                       {card.label}
                     </p>
 
-                    <p className="mt-0.5 text-xl font-bold text-slate-900">
+                    <p className="mt-0.5 text-xl font-bold text-[#3f382f]">
                       {card.value}
                     </p>
 
@@ -785,21 +789,21 @@ export default function VendorDashboard() {
 
                 {/* Revenue Chart */}
 
-                <div className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm lg:col-span-2">
+                <div className="rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm lg:col-span-2">
 
                   <div className="flex items-center justify-between">
 
                     <div>
-                      <h2 className="text-sm font-bold text-slate-900">
+                      <h2 className="text-sm font-bold text-[#3f382f]">
                         Sales Overview
                       </h2>
 
-                      <p className="mt-0.5 text-xs text-slate-500">
+                      <p className="mt-0.5 text-xs text-[#81786d]">
                         Last 7 days revenue
                       </p>
                     </div>
 
-                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-medium text-emerald-700">
+                    <span className="rounded-full bg-[#edf7f5] px-2.5 py-1 text-[10px] font-medium text-[#0f766e]">
                       Daily
                     </span>
 
@@ -830,13 +834,13 @@ export default function VendorDashboard() {
 
                               <stop
                                 offset="5%"
-                                stopColor="#059669"
+                                stopColor="#0f766e"
                                 stopOpacity={0.25}
                               />
 
                               <stop
                                 offset="95%"
-                                stopColor="#059669"
+                                stopColor="#0f766e"
                                 stopOpacity={0}
                               />
 
@@ -847,7 +851,7 @@ export default function VendorDashboard() {
                           <CartesianGrid
                             strokeDasharray="3 3"
                             vertical={false}
-                            stroke="#e2e8f0"
+                            stroke="#ded6c9"
                           />
 
                           <XAxis
@@ -855,7 +859,7 @@ export default function VendorDashboard() {
                             axisLine={false}
                             tickLine={false}
                             tick={{
-                              fill: "#94a3b8",
+                              fill: "#81786d",
                               fontSize: 10,
                             }}
                           />
@@ -864,7 +868,7 @@ export default function VendorDashboard() {
                             axisLine={false}
                             tickLine={false}
                             tick={{
-                              fill: "#94a3b8",
+                              fill: "#81786d",
                               fontSize: 10,
                             }}
                           />
@@ -885,7 +889,7 @@ export default function VendorDashboard() {
                           <Area
                             type="monotone"
                             dataKey="revenue"
-                            stroke="#059669"
+                            stroke="#0f766e"
                             strokeWidth={2.5}
                             fillOpacity={1}
                             fill="url(#colorRevenue)"
@@ -897,7 +901,7 @@ export default function VendorDashboard() {
 
                     ) : (
 
-                      <div className="flex h-full items-center justify-center text-xs text-slate-400">
+                      <div className="flex h-full items-center justify-center text-xs text-[#9a9084]">
                         No revenue data yet
                       </div>
 
@@ -911,9 +915,9 @@ export default function VendorDashboard() {
 
                 <div className="grid grid-cols-3 gap-3 lg:grid-cols-1">
 
-                  <div className="rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm">
+                  <div className="rounded-xl border border-[#ded6c9] bg-white p-4 shadow-sm">
 
-                    <p className="text-xs font-medium text-slate-500">
+                    <p className="text-xs font-medium text-[#81786d]">
                       Pending Orders
                     </p>
 
@@ -923,21 +927,21 @@ export default function VendorDashboard() {
 
                   </div>
 
-                  <div className="rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm">
+                  <div className="rounded-xl border border-[#ded6c9] bg-white p-4 shadow-sm">
 
-                    <p className="text-xs font-medium text-slate-500">
+                    <p className="text-xs font-medium text-[#81786d]">
                       Completed
                     </p>
 
-                    <p className="mt-1 text-2xl font-bold text-emerald-600">
+                    <p className="mt-1 text-2xl font-bold text-[#0f766e]">
                       {data?.completedOrders || 0}
                     </p>
 
                   </div>
 
-                  <div className="rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm">
+                  <div className="rounded-xl border border-[#ded6c9] bg-white p-4 shadow-sm">
 
-                    <p className="text-xs font-medium text-slate-500">
+                    <p className="text-xs font-medium text-[#81786d]">
                       Cancelled
                     </p>
 
@@ -953,17 +957,17 @@ export default function VendorDashboard() {
 
               {/* Recent Orders */}
 
-              <div className="mt-5 overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-sm">
+              <div className="mt-5 overflow-hidden rounded-xl border border-[#ded6c9] bg-white shadow-sm">
 
-                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                <div className="flex items-center justify-between border-b border-[#eee8de] px-5 py-4">
 
                   <div>
 
-                    <h2 className="text-sm font-bold text-slate-900">
+                    <h2 className="text-sm font-bold text-[#3f382f]">
                       Recent Orders
                     </h2>
 
-                    <p className="mt-0.5 text-xs text-slate-500">
+                    <p className="mt-0.5 text-xs text-[#81786d]">
                       Latest customer purchases
                     </p>
 
@@ -973,7 +977,7 @@ export default function VendorDashboard() {
                     onClick={() =>
                       setActiveTab("orders")
                     }
-                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                    className="text-xs font-semibold text-[#0f766e] hover:text-[#115e59]"
                   >
                     View all →
                   </button>
@@ -984,7 +988,7 @@ export default function VendorDashboard() {
 
                   <table className="w-full text-left text-xs">
 
-                    <thead className="bg-slate-50 text-slate-500">
+                    <thead className="bg-[#f8f4ec] text-[#81786d]">
 
                       <tr>
 
@@ -1012,24 +1016,24 @@ export default function VendorDashboard() {
 
                     </thead>
 
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[#eee8de]">
 
                       {orders.slice(0, 5).map(
                         (order) => (
 
                           <tr
                             key={order._id}
-                            className="transition hover:bg-emerald-50/20"
+                            className="transition hover:bg-[#edf7f5]/40"
                           >
 
-                            <td className="px-5 py-3 font-semibold text-slate-900">
+                            <td className="px-5 py-3 font-semibold text-[#3f382f]">
                               #
                               {order._id
                                 .slice(-8)
                                 .toUpperCase()}
                             </td>
 
-                            <td className="px-5 py-3 text-slate-500">
+                            <td className="px-5 py-3 text-[#81786d]">
                               {order.createdAt
                                 ? new Date(
                                     order.createdAt
@@ -1043,7 +1047,7 @@ export default function VendorDashboard() {
                                 : "—"}
                             </td>
 
-                            <td className="px-5 py-3 font-semibold text-slate-900">
+                            <td className="px-5 py-3 font-semibold text-[#3f382f]">
                               {formatCurrency(
                                 order.total
                               )}
@@ -1055,7 +1059,7 @@ export default function VendorDashboard() {
                                 className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
                                   order.status ===
                                   "DELIVERED"
-                                    ? "bg-emerald-50 text-emerald-700"
+                                    ? "bg-[#edf7f5] text-[#0f766e]"
                                     : order.status ===
                                       "CANCELLED"
                                     ? "bg-red-50 text-red-700"
@@ -1073,7 +1077,7 @@ export default function VendorDashboard() {
                                 className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
                                   order.paymentStatus ===
                                   "PAID"
-                                    ? "bg-emerald-50 text-emerald-700"
+                                    ? "bg-[#edf7f5] text-[#0f766e]"
                                     : "bg-amber-50 text-amber-700"
                                 }`}
                               >
@@ -1093,7 +1097,7 @@ export default function VendorDashboard() {
 
                           <td
                             colSpan={5}
-                            className="px-5 py-10 text-center text-xs text-slate-400"
+                            className="px-5 py-10 text-center text-xs text-[#9a9084]"
                           >
                             No orders yet
                           </td>
@@ -1123,15 +1127,15 @@ export default function VendorDashboard() {
 
               {orders.length === 0 ? (
 
-                <div className="rounded-xl border border-slate-200/70 bg-white py-14 text-center shadow-sm">
+                <div className="rounded-xl border border-[#ded6c9] bg-white py-14 text-center shadow-sm">
 
                   <p className="text-3xl">📦</p>
 
-                  <h3 className="mt-3 text-lg font-bold text-slate-900">
+                  <h3 className="mt-3 text-lg font-bold text-[#3f382f]">
                     No orders yet
                   </h3>
 
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-[#81786d]">
                     Customer orders will appear here.
                   </p>
 
@@ -1143,27 +1147,27 @@ export default function VendorDashboard() {
 
                   <div
                     key={order._id}
-                    className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm"
+                    className="rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm"
                   >
 
                     {/* Order Header */}
 
-                    <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex flex-col gap-3 border-b border-[#eee8de] pb-4 md:flex-row md:items-center md:justify-between">
 
                       <div>
 
-                        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                        <p className="text-[10px] font-medium uppercase tracking-wide text-[#9a9084]">
                           Order ID
                         </p>
 
-                        <p className="mt-0.5 text-sm font-bold text-slate-900">
+                        <p className="mt-0.5 text-sm font-bold text-[#3f382f]">
                           #
                           {order._id
                             .slice(-8)
                             .toUpperCase()}
                         </p>
 
-                        <p className="mt-0.5 text-[11px] text-slate-500">
+                        <p className="mt-0.5 text-[11px] text-[#81786d]">
                           {order.createdAt
                             ? new Date(
                                 order.createdAt
@@ -1185,7 +1189,7 @@ export default function VendorDashboard() {
 
                         <div>
 
-                          <p className="mb-1 text-[10px] text-slate-400">
+                          <p className="mb-1 text-[10px] text-[#9a9084]">
                             Status
                           </p>
 
@@ -1197,7 +1201,7 @@ export default function VendorDashboard() {
 
                         <div>
 
-                          <p className="mb-1 text-[10px] text-slate-400">
+                          <p className="mb-1 text-[10px] text-[#9a9084]">
                             Payment
                           </p>
 
@@ -1205,7 +1209,7 @@ export default function VendorDashboard() {
                             className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
                               order.paymentStatus ===
                               "PAID"
-                                ? "bg-emerald-50 text-emerald-700"
+                                ? "bg-[#edf7f5] text-[#0f766e]"
                                 : "bg-amber-50 text-amber-700"
                             }`}
                           >
@@ -1222,20 +1226,20 @@ export default function VendorDashboard() {
 
                     {order.shippingAddress && (
 
-                      <div className="mt-4 rounded-lg bg-slate-50 p-3">
+                      <div className="mt-4 rounded-lg bg-[#f8f4ec] p-3">
 
-                        <p className="text-xs font-semibold text-slate-700">
+                        <p className="text-xs font-semibold text-[#5f574e]">
                           Delivery Details
                         </p>
 
-                        <p className="mt-1 text-xs font-semibold text-slate-900">
+                        <p className="mt-1 text-xs font-semibold text-[#3f382f]">
                           {
                             order.shippingAddress
                               .fullName
                           }
                         </p>
 
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[11px] text-[#81786d]">
                           📞{" "}
                           {
                             order.shippingAddress
@@ -1243,7 +1247,7 @@ export default function VendorDashboard() {
                           }
                         </p>
 
-                        <p className="mt-1 text-[11px] text-slate-500">
+                        <p className="mt-1 text-[11px] text-[#81786d]">
                           {
                             order.shippingAddress
                               .addressLine
@@ -1281,22 +1285,22 @@ export default function VendorDashboard() {
                               item.productId ||
                               index
                             }
-                            className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2.5"
+                            className="flex items-center justify-between rounded-lg bg-[#f8f4ec] px-3 py-2.5"
                           >
 
                             <div>
 
-                              <p className="text-xs font-semibold text-slate-800">
+                              <p className="text-xs font-semibold text-[#5f574e]">
                                 {item.name}
                               </p>
 
-                              <p className="text-[10px] text-slate-500">
+                              <p className="text-[10px] text-[#81786d]">
                                 Qty: {item.quantity}
                               </p>
 
                             </div>
 
-                            <p className="text-xs font-semibold text-slate-900">
+                            <p className="text-xs font-semibold text-[#3f382f]">
                               {formatCurrency(
                                 Number(
                                   item.price
@@ -1316,13 +1320,13 @@ export default function VendorDashboard() {
 
                     {/* Total */}
 
-                    <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                    <div className="mt-4 flex items-center justify-between border-t border-[#eee8de] pt-4">
 
-                      <span className="text-sm font-bold text-slate-900">
+                      <span className="text-sm font-bold text-[#3f382f]">
                         Total
                       </span>
 
-                      <span className="text-lg font-bold text-emerald-700">
+                      <span className="text-lg font-bold text-[#0f766e]">
                         {formatCurrency(
                           order.total
                         )}
@@ -1334,7 +1338,7 @@ export default function VendorDashboard() {
 
                     <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 
-                      <label className="text-xs font-medium text-slate-500">
+                      <label className="text-xs font-medium text-[#81786d]">
                         Update Status
                       </label>
 
@@ -1346,7 +1350,7 @@ export default function VendorDashboard() {
                             e.target.value
                           )
                         }
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs outline-none transition focus:border-emerald-500 sm:w-52"
+                        className="rounded-lg border border-[#ded6c9] bg-white px-3 py-2 text-xs outline-none transition focus:border-[#0f766e] sm:w-52"
                       >
 
                         <option value="PLACED">
@@ -1395,11 +1399,11 @@ export default function VendorDashboard() {
 
                 <div>
 
-                  <h2 className="text-sm font-bold text-slate-900">
+                  <h2 className="text-sm font-bold text-[#3f382f]">
                     Products
                   </h2>
 
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-[#81786d]">
                     {products.length} products in your
                     catalog
                   </p>
@@ -1410,15 +1414,15 @@ export default function VendorDashboard() {
 
               {products.length === 0 ? (
 
-                <div className="rounded-xl border border-slate-200/70 bg-white py-14 text-center shadow-sm">
+                <div className="rounded-xl border border-[#ded6c9] bg-white py-14 text-center shadow-sm">
 
                   <p className="text-3xl">🛍️</p>
 
-                  <h3 className="mt-3 text-lg font-bold">
+                  <h3 className="mt-3 text-lg font-bold text-[#3f382f]">
                     No products yet
                   </h3>
 
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-[#81786d]">
                     Create your first product below.
                   </p>
 
@@ -1433,7 +1437,7 @@ export default function VendorDashboard() {
 
                       <div
                         key={currentProduct._id}
-                        className="rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm transition hover:shadow-md"
+                        className="rounded-xl border border-[#ded6c9] bg-white p-4 shadow-sm transition hover:shadow-md"
                       >
 
                         {editingProductId ===
@@ -1446,12 +1450,12 @@ export default function VendorDashboard() {
                             className="space-y-2.5"
                           >
 
-                            <h3 className="text-sm font-bold">
+                            <h3 className="text-sm font-bold text-[#3f382f]">
                               Edit Product
                             </h3>
 
                             <input
-                              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-emerald-500"
+                              className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
                               placeholder="Product name"
                               value={
                                 editProduct.name
@@ -1466,7 +1470,7 @@ export default function VendorDashboard() {
                             />
 
                             <textarea
-                              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-emerald-500"
+                              className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
                               placeholder="Description"
                               rows="2"
                               value={
@@ -1487,7 +1491,7 @@ export default function VendorDashboard() {
                               <input
                                 type="number"
                                 min="0"
-                                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-emerald-500"
+                                className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
                                 placeholder="Price"
                                 value={
                                   editProduct.price
@@ -1505,7 +1509,7 @@ export default function VendorDashboard() {
                               <input
                                 type="number"
                                 min="0"
-                                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-emerald-500"
+                                className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
                                 placeholder="Stock"
                                 value={
                                   editProduct.stock
@@ -1523,7 +1527,7 @@ export default function VendorDashboard() {
                             </div>
 
                             <input
-                              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-emerald-500"
+                              className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
                               placeholder="Category"
                               value={
                                 editProduct.category
@@ -1542,7 +1546,7 @@ export default function VendorDashboard() {
 
                               <button
                                 type="submit"
-                                className="flex-1 rounded-lg bg-emerald-700 py-2 text-xs font-semibold text-white hover:bg-emerald-800"
+                                className="flex-1 rounded-lg bg-[#0f766e] py-2 text-xs font-semibold text-white hover:bg-[#115e59]"
                               >
                                 Save
                               </button>
@@ -1552,7 +1556,7 @@ export default function VendorDashboard() {
                                 onClick={
                                   cancelEditingProduct
                                 }
-                                className="flex-1 rounded-lg bg-slate-100 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200"
+                                className="flex-1 rounded-lg bg-[#eee8de] py-2 text-xs font-semibold text-[#5f574e] hover:bg-[#e3dbcf]"
                               >
                                 Cancel
                               </button>
@@ -1569,13 +1573,13 @@ export default function VendorDashboard() {
 
                               <div className="min-w-0">
 
-                                <h3 className="truncate text-sm font-bold text-slate-900">
+                                <h3 className="truncate text-sm font-bold text-[#3f382f]">
                                   {
                                     currentProduct.name
                                   }
                                 </h3>
 
-                                <p className="mt-1 text-base font-bold text-emerald-700">
+                                <p className="mt-1 text-base font-bold text-[#0f766e]">
                                   {formatCurrency(
                                     currentProduct.price
                                   )}
@@ -1588,7 +1592,7 @@ export default function VendorDashboard() {
                                   currentProduct
                                     .stock >
                                   0
-                                    ? "bg-emerald-50 text-emerald-700"
+                                    ? "bg-[#edf7f5] text-[#0f766e]"
                                     : "bg-red-50 text-red-600"
                                 }`}
                               >
@@ -1602,7 +1606,7 @@ export default function VendorDashboard() {
 
                             {currentProduct.description && (
 
-                              <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-slate-500">
+                              <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-[#81786d]">
                                 {
                                   currentProduct.description
                                 }
@@ -1614,7 +1618,7 @@ export default function VendorDashboard() {
 
                               {currentProduct.category && (
 
-                                <span className="rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-medium text-emerald-700">
+                                <span className="rounded-full bg-[#edf7f5] px-2 py-1 text-[9px] font-medium text-[#0f766e]">
                                   {
                                     currentProduct.category
                                   }
@@ -1622,7 +1626,7 @@ export default function VendorDashboard() {
 
                               )}
 
-                              <span className="rounded-full bg-slate-100 px-2 py-1 text-[9px] font-medium text-slate-500">
+                              <span className="rounded-full bg-[#eee8de] px-2 py-1 text-[9px] font-medium text-[#81786d]">
                                 Stock:{" "}
                                 {
                                   currentProduct.stock
@@ -1639,7 +1643,7 @@ export default function VendorDashboard() {
                                     currentProduct
                                   )
                                 }
-                                className="rounded-lg bg-emerald-50 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                                className="rounded-lg bg-[#edf7f5] py-2 text-xs font-semibold text-[#0f766e] hover:bg-[#dff1ee]"
                               >
                                 Edit
                               </button>
@@ -1672,15 +1676,15 @@ export default function VendorDashboard() {
 
               {/* Create Product */}
 
-              <div className="mt-6 rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
+              <div className="mt-6 rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm">
 
                 <div className="mb-4">
 
-                  <h2 className="text-sm font-bold text-slate-900">
+                  <h2 className="text-sm font-bold text-[#3f382f]">
                     Create New Product
                   </h2>
 
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-[#81786d]">
                     Add a product to one of your stores
                   </p>
 
@@ -1692,7 +1696,7 @@ export default function VendorDashboard() {
                 >
 
                   <select
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs outline-none focus:border-emerald-500"
+                    className="w-full rounded-lg border border-[#ded6c9] bg-white px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
                     value={product.storeId}
                     onChange={(e) =>
                       setProduct({
@@ -1721,7 +1725,7 @@ export default function VendorDashboard() {
                   </select>
 
                   <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-emerald-500"
+                    className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
                     placeholder="Product name"
                     value={product.name}
                     onChange={(e) =>
@@ -1733,7 +1737,7 @@ export default function VendorDashboard() {
                   />
 
                   <textarea
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-emerald-500"
+                    className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
                     placeholder="Description"
                     rows="2"
                     value={product.description}
@@ -1751,7 +1755,7 @@ export default function VendorDashboard() {
                     <input
                       type="number"
                       min="0"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-emerald-500"
+                      className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
                       placeholder="Price"
                       value={product.price}
                       onChange={(e) =>
@@ -1765,7 +1769,7 @@ export default function VendorDashboard() {
                     <input
                       type="number"
                       min="0"
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-emerald-500"
+                      className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
                       placeholder="Stock"
                       value={product.stock}
                       onChange={(e) =>
@@ -1779,7 +1783,7 @@ export default function VendorDashboard() {
                   </div>
 
                   <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-emerald-500"
+                    className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
                     placeholder="Category"
                     value={product.category}
                     onChange={(e) =>
@@ -1793,7 +1797,7 @@ export default function VendorDashboard() {
 
                   <button
                     type="submit"
-                    className="w-full rounded-lg bg-emerald-700 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-800"
+                    className="w-full rounded-lg bg-[#0f766e] py-2.5 text-xs font-bold text-white transition hover:bg-[#115e59]"
                   >
                     + Create Product
                   </button>
@@ -1816,11 +1820,11 @@ export default function VendorDashboard() {
 
               <div className="mb-4">
 
-                <h2 className="text-sm font-bold text-slate-900">
+                <h2 className="text-sm font-bold text-[#3f382f]">
                   My Stores
                 </h2>
 
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-[#81786d]">
                   {stores.length} stores under your
                   account
                 </p>
@@ -1829,15 +1833,15 @@ export default function VendorDashboard() {
 
               {stores.length === 0 ? (
 
-                <div className="rounded-xl border border-slate-200/70 bg-white py-14 text-center shadow-sm">
+                <div className="rounded-xl border border-[#ded6c9] bg-white py-14 text-center shadow-sm">
 
                   <p className="text-3xl">🏬</p>
 
-                  <h3 className="mt-3 text-lg font-bold">
+                  <h3 className="mt-3 text-lg font-bold text-[#3f382f]">
                     No stores yet
                   </h3>
 
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-[#81786d]">
                     Create your first store below.
                   </p>
 
@@ -1852,7 +1856,7 @@ export default function VendorDashboard() {
 
                       <div
                         key={currentStore._id}
-                        className="rounded-xl border border-slate-200/70 bg-white p-4 shadow-sm transition hover:shadow-md"
+                        className="rounded-xl border border-[#ded6c9] bg-white p-4 shadow-sm transition hover:shadow-md"
                       >
 
                         {editingStoreId ===
@@ -1863,12 +1867,12 @@ export default function VendorDashboard() {
                             className="space-y-2.5"
                           >
 
-                            <h3 className="text-sm font-bold">
+                            <h3 className="text-sm font-bold text-[#3f382f]">
                               Edit Store
                             </h3>
 
                             <input
-                              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-emerald-500"
+                              className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
                               placeholder="Store name"
                               value={
                                 editStore.name
@@ -1883,7 +1887,7 @@ export default function VendorDashboard() {
                             />
 
                             <input
-                              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-emerald-500"
+                              className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
                               placeholder="store-slug"
                               value={
                                 editStore.slug
@@ -1898,7 +1902,7 @@ export default function VendorDashboard() {
                             />
 
                             <textarea
-                              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs outline-none focus:border-emerald-500"
+                              className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
                               placeholder="Description"
                               rows="2"
                               value={
@@ -1918,7 +1922,7 @@ export default function VendorDashboard() {
 
                               <button
                                 type="submit"
-                                className="flex-1 rounded-lg bg-emerald-700 py-2 text-xs font-semibold text-white hover:bg-emerald-800"
+                                className="flex-1 rounded-lg bg-[#0f766e] py-2 text-xs font-semibold text-white hover:bg-[#115e59]"
                               >
                                 Save
                               </button>
@@ -1928,7 +1932,7 @@ export default function VendorDashboard() {
                                 onClick={
                                   cancelEditingStore
                                 }
-                                className="flex-1 rounded-lg bg-slate-100 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200"
+                                className="flex-1 rounded-lg bg-[#eee8de] py-2 text-xs font-semibold text-[#5f574e] hover:bg-[#e3dbcf]"
                               >
                                 Cancel
                               </button>
@@ -1945,13 +1949,13 @@ export default function VendorDashboard() {
 
                               <div className="min-w-0">
 
-                                <h3 className="truncate text-sm font-bold text-slate-900">
+                                <h3 className="truncate text-sm font-bold text-[#3f382f]">
                                   {
                                     currentStore.name
                                   }
                                 </h3>
 
-                                <p className="mt-0.5 truncate text-[10px] text-slate-400">
+                                <p className="mt-0.5 truncate text-[10px] text-[#9a9084]">
                                   /
                                   {
                                     currentStore.slug
@@ -1965,7 +1969,7 @@ export default function VendorDashboard() {
                                   currentStore.status ===
                                   "SUSPENDED"
                                     ? "bg-red-50 text-red-700"
-                                    : "bg-emerald-50 text-emerald-700"
+                                    : "bg-[#edf7f5] text-[#0f766e]"
                                 }`}
                               >
                                 {currentStore.status ||
@@ -1974,7 +1978,7 @@ export default function VendorDashboard() {
 
                             </div>
 
-                            <p className="mt-3 line-clamp-3 text-[11px] leading-5 text-slate-500">
+                            <p className="mt-3 line-clamp-3 text-[11px] leading-5 text-[#81786d]">
                               {currentStore.description ||
                                 "No description available."}
                             </p>
@@ -1987,7 +1991,7 @@ export default function VendorDashboard() {
                                     currentStore
                                   )
                                 }
-                                className="rounded-lg bg-emerald-50 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                                className="rounded-lg bg-[#edf7f5] py-2 text-xs font-semibold text-[#0f766e] hover:bg-[#dff1ee]"
                               >
                                 Edit
                               </button>
@@ -2020,15 +2024,15 @@ export default function VendorDashboard() {
 
               {/* Create Store */}
 
-              <div className="mt-6 rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
+              <div className="mt-6 rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm">
 
                 <div className="mb-4">
 
-                  <h2 className="text-sm font-bold text-slate-900">
+                  <h2 className="text-sm font-bold text-[#3f382f]">
                     Create New Store
                   </h2>
 
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-[#81786d]">
                     Set up another store under your
                     vendor account
                   </p>
@@ -2041,7 +2045,7 @@ export default function VendorDashboard() {
                 >
 
                   <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-emerald-500"
+                    className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
                     placeholder="Store name"
                     value={store.name}
                     onChange={(e) =>
@@ -2053,7 +2057,7 @@ export default function VendorDashboard() {
                   />
 
                   <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-emerald-500"
+                    className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
                     placeholder="store-slug"
                     value={store.slug}
                     onChange={(e) =>
@@ -2065,7 +2069,7 @@ export default function VendorDashboard() {
                   />
 
                   <textarea
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-emerald-500"
+                    className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
                     placeholder="Description"
                     rows="2"
                     value={store.description}
@@ -2080,7 +2084,7 @@ export default function VendorDashboard() {
 
                   <button
                     type="submit"
-                    className="w-full rounded-lg bg-slate-900 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800"
+                    className="w-full rounded-lg bg-[#6f4e37] py-2.5 text-xs font-bold text-white transition hover:bg-[#5c3f2d]"
                   >
                     + Create Store
                   </button>
@@ -2103,15 +2107,15 @@ export default function VendorDashboard() {
 
               {/* Revenue */}
 
-              <div className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
+              <div className="rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm">
 
                 <div>
 
-                  <h2 className="text-sm font-bold text-slate-900">
+                  <h2 className="text-sm font-bold text-[#3f382f]">
                     Revenue Trend
                   </h2>
 
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-[#81786d]">
                     Paid revenue over the last 7 days
                   </p>
 
@@ -2133,7 +2137,7 @@ export default function VendorDashboard() {
                         <CartesianGrid
                           strokeDasharray="3 3"
                           vertical={false}
-                          stroke="#e2e8f0"
+                          stroke="#ded6c9"
                         />
 
                         <XAxis
@@ -2142,7 +2146,7 @@ export default function VendorDashboard() {
                           tickLine={false}
                           tick={{
                             fontSize: 10,
-                            fill: "#94a3b8",
+                            fill: "#81786d",
                           }}
                         />
 
@@ -2151,7 +2155,7 @@ export default function VendorDashboard() {
                           tickLine={false}
                           tick={{
                             fontSize: 10,
-                            fill: "#94a3b8",
+                            fill: "#81786d",
                           }}
                         />
 
@@ -2169,11 +2173,11 @@ export default function VendorDashboard() {
                         <Line
                           type="monotone"
                           dataKey="revenue"
-                          stroke="#059669"
+                          stroke="#0f766e"
                           strokeWidth={2.5}
                           dot={{
                             r: 3,
-                            fill: "#059669",
+                            fill: "#0f766e",
                           }}
                         />
 
@@ -2183,7 +2187,7 @@ export default function VendorDashboard() {
 
                   ) : (
 
-                    <div className="flex h-full items-center justify-center text-xs text-slate-400">
+                    <div className="flex h-full items-center justify-center text-xs text-[#9a9084]">
                       No data available
                     </div>
 
@@ -2195,15 +2199,15 @@ export default function VendorDashboard() {
 
               {/* Orders */}
 
-              <div className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-sm">
+              <div className="rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm">
 
                 <div>
 
-                  <h2 className="text-sm font-bold text-slate-900">
+                  <h2 className="text-sm font-bold text-[#3f382f]">
                     Order Trend
                   </h2>
 
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-[#81786d]">
                     Orders received in the last 7 days
                   </p>
 
@@ -2225,7 +2229,7 @@ export default function VendorDashboard() {
                         <CartesianGrid
                           strokeDasharray="3 3"
                           vertical={false}
-                          stroke="#e2e8f0"
+                          stroke="#ded6c9"
                         />
 
                         <XAxis
@@ -2234,7 +2238,7 @@ export default function VendorDashboard() {
                           tickLine={false}
                           tick={{
                             fontSize: 10,
-                            fill: "#94a3b8",
+                            fill: "#81786d",
                           }}
                         />
 
@@ -2243,7 +2247,7 @@ export default function VendorDashboard() {
                           tickLine={false}
                           tick={{
                             fontSize: 10,
-                            fill: "#94a3b8",
+                            fill: "#81786d",
                           }}
                         />
 
@@ -2251,7 +2255,7 @@ export default function VendorDashboard() {
 
                         <Bar
                           dataKey="orders"
-                          fill="#059669"
+                          fill="#0f766e"
                           radius={[5, 5, 0, 0]}
                         />
 
@@ -2261,7 +2265,7 @@ export default function VendorDashboard() {
 
                   ) : (
 
-                    <div className="flex h-full items-center justify-center text-xs text-slate-400">
+                    <div className="flex h-full items-center justify-center text-xs text-[#9a9084]">
                       No data available
                     </div>
 
