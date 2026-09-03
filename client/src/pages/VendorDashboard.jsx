@@ -76,8 +76,8 @@ export default function VendorDashboard() {
         ordersResponse,
       ] = await Promise.all([
         api.get("/analytics/vendor"),
-        api.get("/stores"),
-        api.get("/products"),
+        api.get("/stores/vendor"),
+        api.get("/products/vendor"),
         api.get("/orders/vendor"),
       ]);
 
@@ -461,7 +461,7 @@ export default function VendorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f1e8]">
+    <div className="flex bg-[#f5f1e8]">
 
       {/* =====================================================
           SIDEBAR
@@ -470,7 +470,7 @@ export default function VendorDashboard() {
       ===================================================== */}
 
       <aside
-        className={`fixed left-0 top-[72px] z-30 flex h-[calc(100vh-72px)] flex-col border-r border-white/10 bg-[#0d3b2e] text-white shadow-xl transition-all duration-500 ${
+        className={`sticky top-0 z-30 flex h-screen shrink-0 flex-col border-r border-white/10 bg-[#0d3b2e] text-white shadow-xl transition-all duration-500 ease-in-out overflow-hidden ${
           sidebarOpen
             ? "w-[230px]"
             : "w-0 overflow-hidden"
@@ -603,13 +603,7 @@ export default function VendorDashboard() {
           MAIN AREA
       ===================================================== */}
 
-      <main
-        className={`min-h-screen transition-all duration-500 ${
-          sidebarOpen
-            ? "ml-[230px]"
-            : "ml-0"
-        }`}
-      >
+       <main className="min-h-screen flex-1 min-w-0">
 
         {/* ===================================================
             DASHBOARD HEADER
