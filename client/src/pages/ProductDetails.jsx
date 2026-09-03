@@ -96,7 +96,7 @@ export default function ProductDetails() {
         quantity,
       });
 
-      navigate("/checkout");
+      navigate("/cart");
     } catch (err) {
       console.error("BUY NOW ERROR:", err);
 

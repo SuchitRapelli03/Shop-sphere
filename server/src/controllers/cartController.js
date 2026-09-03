@@ -103,5 +103,6 @@ export async function removeCartItem(req, res) {
   const cart = await getOrCreateCart(req.user._id);
   cart.items = cart.items.filter((i) => i.productId.toString() !== req.params.productId);
   await cart.save();
+  await cart.populate("items.productId", "name price images stock storeId");
   res.json({ cart });
 }
