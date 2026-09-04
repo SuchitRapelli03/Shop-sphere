@@ -78,6 +78,7 @@ export default function Home() {
     { name: "Home Appliances", icon: "🏠" },
     { name: "Stationery", icon: "✏️" },
     { name: "Tools", icon: "🔧" },
+    { name: "Arts", icon: "🎨" },
   ];
 
   /* =========================================================
@@ -175,27 +176,31 @@ export default function Home() {
 
         <div className="mx-auto max-w-7xl px-3 lg:px-8">
 
-          <div className="flex overflow-x-auto scrollbar-hide">
+          <div className="overflow-x-auto scrollbar-hide">
 
-            {quickCategories.map((category) => (
+            <div className="mx-auto flex w-max min-w-full justify-center">
 
-              <Link
-                key={category.name}
-                to={`/products?category=${encodeURIComponent(category.name)}`}
-                className="group relative flex min-w-[88px] shrink-0 items-center justify-center gap-2 border-r border-[#e1d9cf] px-3 py-3 transition duration-200 first:border-l hover:bg-[#e9f3f4]"
-              >
+              {quickCategories.map((category) => (
 
-                <span className="text-sm grayscale transition duration-200 group-hover:grayscale-0">
-                  {category.icon}
-                </span>
+                <Link
+                  key={category.name}
+                  to={`/products?category=${encodeURIComponent(category.name)}`}
+                  className="group relative flex min-w-[88px] shrink-0 items-center justify-center gap-2 border-r border-[#e1d9cf] px-3 py-3 transition duration-200 first:border-l hover:bg-[#e9f3f4]"
+                >
 
-                <span className="whitespace-nowrap text-[10px] font-black text-[#5f554d] transition group-hover:text-[#3f737c]">
-                  {category.name}
-                </span>
+                  <span className="text-sm grayscale transition duration-200 group-hover:grayscale-0">
+                    {category.icon}
+                  </span>
 
-              </Link>
+                  <span className="whitespace-nowrap text-[10px] font-black text-[#5f554d] transition group-hover:text-[#3f737c]">
+                    {category.name}
+                  </span>
 
-            ))}
+                </Link>
+
+              ))}
+
+            </div>
 
           </div>
 
