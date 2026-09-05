@@ -47,6 +47,7 @@ export async function myOrders(req, res) {
       customerId: req.user._id,
     })
       .populate("storeId", "name")
+      .populate("items.productId", "name images")
       .sort({ createdAt: -1 });
 
     res.json({ orders });
@@ -65,6 +66,7 @@ export async function vendorOrders(req, res) {
       vendorId: req.user._id,
     })
       .populate("storeId", "name")
+      .populate("items.productId", "name images")
       .sort({ createdAt: -1 });
 
     res.json({ orders });

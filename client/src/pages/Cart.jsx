@@ -7,21 +7,11 @@ import { setCart } from "../redux/slices/cartSlice.js";
 export default function Cart() {
   const [cart, setLocal] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [paymentLoading, setPaymentLoading] = useState(false);
   const [updatingProductId, setUpdatingProductId] =
     useState(null);
   const [removingProductId, setRemovingProductId] =
     useState(null);
   const [error, setError] = useState("");
-
-  const [shippingAddress, setShippingAddress] = useState({
-    fullName: "",
-    phone: "",
-    addressLine: "",
-    city: "",
-    state: "",
-    pincode: "",
-  });
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -67,51 +57,6 @@ export default function Cart() {
       setLoading(false);
     }
   }, [user, dispatch]);
-
-  /* =========================================================
-     ADDRESS
-  ========================================================= */
-
-  function handleAddressChange(e) {
-    const { name, value } = e.target;
-
-    setShippingAddress((current) => ({
-      ...current,
-      [name]: value,
-    }));
-  }
-
-  function validateShippingAddress() {
-    const {
-      fullName,
-      phone,
-      addressLine,
-      city,
-      state,
-      pincode,
-    } = shippingAddress;
-
-    if (
-      !fullName.trim() ||
-      !phone.trim() ||
-      !addressLine.trim() ||
-      !city.trim() ||
-      !state.trim() ||
-      !pincode.trim()
-    ) {
-      return "Please complete all delivery details.";
-    }
-
-    if (!/^[6-9]\d{9}$/.test(phone.trim())) {
-      return "Please enter a valid 10-digit Indian phone number.";
-    }
-
-    if (!/^\d{6}$/.test(pincode.trim())) {
-      return "Please enter a valid 6-digit pincode.";
-    }
-
-    return "";
-  }
 
   /* =========================================================
      UPDATE QUANTITY
@@ -244,198 +189,15 @@ export default function Cart() {
   }
 
   /* =========================================================
-     RAZORPAY
+     PROCEED TO CHECKOUT
   ========================================================= */
 
-  async function loadRazorpayScript() {
-    if (window.Razorpay) {
-      return true;
-    }
-
-    return new Promise((resolve) => {
-      const script =
-        document.createElement("script");
-
-      script.src =
-        "https://checkout.razorpay.com/v1/checkout.js";
-
-      script.onload = () =>
-        resolve(true);
-
-      script.onerror = () =>
-        resolve(false);
-
-      document.body.appendChild(
-        script
-      );
-    });
-  }
-
-  async function checkout() {
-    const addressError =
-      validateShippingAddress();
-
-    if (addressError) {
-      alert(addressError);
+  function proceedToCheckout() {
+    if (!items.length) {
       return;
     }
 
-    try {
-      setPaymentLoading(true);
-      setError("");
-
-      const scriptLoaded =
-        await loadRazorpayScript();
-
-      if (!scriptLoaded) {
-        throw new Error(
-          "Unable to load Razorpay Checkout."
-        );
-      }
-
-      const { data } =
-        await api.post(
-          "/payments/create-razorpay-order"
-        );
-
-      const options = {
-        key: data.keyId,
-        amount: data.amount,
-        currency: data.currency,
-        name: "ShopSphere",
-        description: "ShopSphere Order",
-        order_id:
-          data.razorpayOrderId,
-
-        prefill: {
-          name:
-            shippingAddress.fullName ||
-            user?.name ||
-            "",
-
-          email:
-            user?.email || "",
-
-          contact:
-            shippingAddress.phone || "",
-        },
-
-        theme: {
-          color: "#674936",
-        },
-
-        handler: async function (
-          response
-        ) {
-          try {
-            setPaymentLoading(true);
-
-            const verificationResponse =
-              await api.post(
-                "/payments/verify",
-                {
-                  razorpay_order_id:
-                    response.razorpay_order_id,
-
-                  razorpay_payment_id:
-                    response.razorpay_payment_id,
-
-                  razorpay_signature:
-                    response.razorpay_signature,
-
-                  shippingAddress,
-                }
-              );
-
-            alert(
-              verificationResponse
-                .data.message ||
-                "Payment successful!"
-            );
-
-            const cartResponse =
-              await api.get("/cart");
-
-            setLocal(
-              cartResponse.data.cart
-            );
-
-            dispatch(
-              setCart(
-                cartResponse.data
-                  .cart?.items || []
-              )
-            );
-
-            navigate(
-              "/checkout/success"
-            );
-          } catch (error) {
-            console.error(
-              "PAYMENT VERIFICATION ERROR:",
-              error
-            );
-
-            alert(
-              error.response?.data
-                ?.message ||
-                "Payment verification failed."
-            );
-          } finally {
-            setPaymentLoading(
-              false
-            );
-          }
-        },
-
-        modal: {
-          ondismiss: function () {
-            setPaymentLoading(
-              false
-            );
-          },
-        },
-      };
-
-      const razorpay =
-        new window.Razorpay(
-          options
-        );
-
-      razorpay.on(
-        "payment.failed",
-        function (response) {
-          console.error(
-            "Razorpay payment failed:",
-            response.error
-          );
-
-          alert(
-            response.error?.description ||
-              "Payment failed. Please try again."
-          );
-
-          setPaymentLoading(
-            false
-          );
-        }
-      );
-
-      razorpay.open();
-    } catch (error) {
-      console.error(
-        "CHECKOUT ERROR:",
-        error
-      );
-
-      alert(
-        error.response?.data?.message ||
-          error.message ||
-          "Unable to start payment."
-      );
-
-      setPaymentLoading(false);
-    }
+    navigate("/checkout");
   }
 
   /* =========================================================
@@ -615,7 +377,7 @@ export default function Cart() {
           <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
 
             {/* =================================================
-                LEFT
+                LEFT: CART ITEMS
             ================================================= */}
 
             <div>
@@ -766,8 +528,7 @@ export default function Cart() {
                                     item.quantity <=
                                       1 ||
                                     updating ||
-                                    removing ||
-                                    paymentLoading
+                                    removing
                                   }
                                   className="h-full w-10 font-black text-[#674936] transition hover:bg-[#f5f1e9] disabled:cursor-not-allowed disabled:opacity-40"
                                 >
@@ -791,8 +552,7 @@ export default function Cart() {
                                     item.quantity >=
                                       stock ||
                                     updating ||
-                                    removing ||
-                                    paymentLoading
+                                    removing
                                   }
                                   className="h-full w-10 font-black text-[#674936] transition hover:bg-[#f5f1e9] disabled:cursor-not-allowed disabled:opacity-40"
                                 >
@@ -819,8 +579,7 @@ export default function Cart() {
                               }
                               disabled={
                                 removing ||
-                                updating ||
-                                paymentLoading
+                                updating
                               }
                               className="rounded-xl border border-red-200 px-4 py-2 text-xs font-black text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
@@ -841,189 +600,20 @@ export default function Cart() {
 
               </div>
 
-              {/* =================================================
-                  DELIVERY DETAILS
-              ================================================= */}
-
-              <section className="mt-8 rounded-2xl border border-[#ded5ca] bg-white p-6 shadow-sm">
-
-                <div>
-
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#6a9aa2]">
-                    Delivery
-                  </p>
-
-                  <h2 className="mt-1 text-2xl font-black">
-                    Delivery Details
-                  </h2>
-
-                  <p className="mt-2 text-sm text-[#81766d]">
-                    Enter the details where you
-                    want your order delivered.
-                  </p>
-
-                </div>
-
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
-
-                  {/* NAME */}
-
-                  <div className="md:col-span-2">
-
-                    <label className="text-sm font-semibold text-slate-700">
-                      Full Name
-                    </label>
-
-                    <input
-                      name="fullName"
-                      type="text"
-                      value={
-                        shippingAddress.fullName
-                      }
-                      onChange={
-                        handleAddressChange
-                      }
-                      placeholder="Enter recipient name"
-                      className="mt-2 w-full rounded-xl border border-[#d8cec2] p-3 outline-none transition focus:border-[#674936] focus:ring-2 focus:ring-[#eadfd4]"
-                    />
-
-                  </div>
-
-                  {/* PHONE */}
-
-                  <div>
-
-                    <label className="text-sm font-semibold text-slate-700">
-                      Phone Number
-                    </label>
-
-                    <input
-                      name="phone"
-                      type="tel"
-                      maxLength="10"
-                      value={
-                        shippingAddress.phone
-                      }
-                      onChange={
-                        handleAddressChange
-                      }
-                      placeholder="10-digit mobile number"
-                      className="mt-2 w-full rounded-xl border border-[#d8cec2] p-3 outline-none transition focus:border-[#674936] focus:ring-2 focus:ring-[#eadfd4]"
-                    />
-
-                  </div>
-
-                  {/* PINCODE */}
-
-                  <div>
-
-                    <label className="text-sm font-semibold text-slate-700">
-                      Pincode
-                    </label>
-
-                    <input
-                      name="pincode"
-                      type="text"
-                      maxLength="6"
-                      value={
-                        shippingAddress.pincode
-                      }
-                      onChange={
-                        handleAddressChange
-                      }
-                      placeholder="6-digit pincode"
-                      className="mt-2 w-full rounded-xl border border-[#d8cec2] p-3 outline-none transition focus:border-[#674936] focus:ring-2 focus:ring-[#eadfd4]"
-                    />
-
-                  </div>
-
-                  {/* ADDRESS */}
-
-                  <div className="md:col-span-2">
-
-                    <label className="text-sm font-semibold text-slate-700">
-                      Address
-                    </label>
-
-                    <textarea
-                      name="addressLine"
-                      rows="3"
-                      value={
-                        shippingAddress.addressLine
-                      }
-                      onChange={
-                        handleAddressChange
-                      }
-                      placeholder="House number, street, area, landmark..."
-                      className="mt-2 w-full rounded-xl border border-[#d8cec2] p-3 outline-none transition focus:border-[#674936] focus:ring-2 focus:ring-[#eadfd4]"
-                    />
-
-                  </div>
-
-                  {/* CITY */}
-
-                  <div>
-
-                    <label className="text-sm font-semibold text-slate-700">
-                      City
-                    </label>
-
-                    <input
-                      name="city"
-                      type="text"
-                      value={
-                        shippingAddress.city
-                      }
-                      onChange={
-                        handleAddressChange
-                      }
-                      placeholder="City"
-                      className="mt-2 w-full rounded-xl border border-[#d8cec2] p-3 outline-none transition focus:border-[#674936] focus:ring-2 focus:ring-[#eadfd4]"
-                    />
-
-                  </div>
-
-                  {/* STATE */}
-
-                  <div>
-
-                    <label className="text-sm font-semibold text-slate-700">
-                      State
-                    </label>
-
-                    <input
-                      name="state"
-                      type="text"
-                      value={
-                        shippingAddress.state
-                      }
-                      onChange={
-                        handleAddressChange
-                      }
-                      placeholder="State"
-                      className="mt-2 w-full rounded-xl border border-[#d8cec2] p-3 outline-none transition focus:border-[#674936] focus:ring-2 focus:ring-[#eadfd4]"
-                    />
-
-                  </div>
-
-                </div>
-
-              </section>
-
             </div>
 
             {/* =================================================
-                RIGHT: ORDER SUMMARY
+                RIGHT: CART SUMMARY
             ================================================= */}
 
             <aside className="h-fit rounded-2xl border border-[#ded5ca] bg-white p-6 shadow-sm lg:sticky lg:top-24">
 
               <p className="text-xs font-black uppercase tracking-[0.18em] text-[#6a9aa2]">
-                Checkout
+                Cart Summary
               </p>
 
               <h2 className="mt-1 text-2xl font-black">
-                Order Summary
+                Price Details
               </h2>
 
               {/* ITEM COUNT */}
@@ -1143,38 +733,36 @@ export default function Cart() {
 
               </div>
 
-              {/* PAYMENT */}
+              {/* CHECKOUT */}
 
               <button
                 type="button"
-                onClick={checkout}
-                disabled={paymentLoading}
-                className="mt-6 w-full rounded-xl bg-[#674936] p-4 font-black text-[#f8f1e9] transition hover:bg-[#543a2b] disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={proceedToCheckout}
+                className="mt-6 w-full rounded-xl bg-[#674936] p-4 font-black text-[#f8f1e9] transition hover:bg-[#543a2b]"
               >
-                {paymentLoading
-                  ? "Processing..."
-                  : "Pay Securely with Razorpay"}
+                Proceed to Checkout
               </button>
 
-              {/* SECURITY */}
+              {/* SECURITY / INFO */}
 
               <div className="mt-5 rounded-xl border border-[#c7dfe2] bg-[#e5f1f3] p-4">
 
                 <div className="flex items-start gap-3">
 
                   <span className="text-xl">
-                    🔒
+                    🛒
                   </span>
 
                   <div>
 
                     <p className="text-sm font-black text-[#365f66]">
-                      Secure Checkout
+                      Ready for checkout?
                     </p>
 
                     <p className="mt-1 text-xs leading-5 text-[#55777d]">
-                      Your payment is securely
-                      processed through Razorpay.
+                      Delivery details and secure
+                      payment will be handled on
+                      the next step.
                     </p>
 
                   </div>
@@ -1182,11 +770,6 @@ export default function Cart() {
                 </div>
 
               </div>
-
-              <p className="mt-4 text-center text-xs text-[#81766d]">
-                Your delivery details will be
-                securely attached to this order.
-              </p>
 
             </aside>
 

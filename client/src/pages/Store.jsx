@@ -162,45 +162,65 @@ export default function Store() {
     <main className="min-h-screen bg-[#f5f1e9] text-[#30251f]">
 
       {/* =====================================================
-          STORE HEADER
-      ===================================================== */}
+            STORE HEADER
+        ===================================================== */}
 
-      <section className="border-b border-[#ded5ca] bg-[#e5f1f3]">
+        <section className="border-b border-[#ded5ca] bg-[#f5f1e9]">
 
-        <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
+          <div className="mx-auto max-w-7xl px-5 lg:px-8">
 
-          {/* Back link */}
+            {/* Back link */}
 
-          <Link
-            to="/stores"
-            className="text-xs font-black text-[#64939c] transition hover:text-[#4f7e85]"
-          >
-            ← Back to Stores
-          </Link>
+            <div className="pt-6">
+              <Link
+                to="/stores"
+                className="text-xs font-black text-[#64939c] transition hover:text-[#4f7e85]"
+              >
+                ← Back to Stores
+              </Link>
+            </div>
 
-          {/* Store information */}
+            {/* Banner + Logo */}
 
-          <div className="mt-8 flex flex-col gap-6 md:flex-row md:items-center">
+            <div className="relative mt-5">
 
-            {/* Store Logo */}
-
-            <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-[1.75rem] border border-[#c7dfe2] bg-[#f5f1e9] text-5xl shadow-sm">
-
-              {store.logo ? (
-                <img
-                  src={store.logo}
-                  alt={store.name}
-                  className="h-full w-full object-cover"
-                />
+              {store.banner ? (
+                <div className="h-52 w-full overflow-hidden rounded-[1.75rem] bg-[#e5f1f3] sm:h-60 lg:h-64">
+                  <img
+                    src={store.banner}
+                    alt={`${store.name} banner`}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
               ) : (
-                "🏪"
+                <div className="h-52 w-full rounded-[1.75rem] bg-[#e5f1f3] sm:h-60 lg:h-64" />
               )}
+
+              {/* Store Logo overlapping banner */}
+
+              <div className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2">
+
+                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-[1.75rem] border-4 border-[#f5f1e9] bg-[#f5f1e9] text-5xl shadow-lg sm:h-32 sm:w-32">
+
+                  {store.logo ? (
+                    <img
+                      src={store.logo}
+                      alt={store.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    "🏪"
+                  )}
+
+                </div>
+
+              </div>
 
             </div>
 
             {/* Store Information */}
 
-            <div>
+            <div className="px-2 pb-10 pt-20 text-center">
 
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6a9aa2]">
                 ShopSphere Store
@@ -210,7 +230,7 @@ export default function Store() {
                 {store.name}
               </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#746a62]">
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[#746a62]">
                 {store.description ||
                   "Discover amazing products from this store."}
               </p>
@@ -231,9 +251,7 @@ export default function Store() {
 
           </div>
 
-        </div>
-
-      </section>
+        </section>
 
 
       {/* =====================================================

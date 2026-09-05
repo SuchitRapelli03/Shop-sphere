@@ -16,6 +16,7 @@ import Store from "./pages/Store.jsx";
 import Products from "./pages/Products.jsx";
 import ProductDetails from "./pages/ProductDetails.jsx";
 import Cart from "./pages/Cart.jsx";
+import Checkout from "./pages/Checkout.jsx";
 import CustomerOrders from "./pages/CustomerOrders.jsx";
 import VendorDashboard from "./pages/VendorDashboard.jsx";
 
@@ -29,13 +30,15 @@ import Success from "./pages/Success.jsx";
 
 export default function App() {
   const [showIntro, setShowIntro] = React.useState(true);
+
   return (
     <BrowserRouter>
-    {showIntro && (
-    <ShopSphereIntro
-      onComplete={() => setShowIntro(false)}
-    />
-  )}
+      {showIntro && (
+        <ShopSphereIntro
+          onComplete={() => setShowIntro(false)}
+        />
+      )}
+
       <Navbar />
 
       <Routes>
@@ -97,6 +100,11 @@ export default function App() {
           <Route
             path="/cart"
             element={<Cart />}
+          />
+
+          <Route
+            path="/checkout"
+            element={<Checkout />}
           />
 
           <Route

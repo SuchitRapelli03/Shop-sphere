@@ -6,15 +6,13 @@ import ProductCard from "../components/ProductCard.jsx";
 const categories = [
   "Fashion",
   "Electronics",
-  "Shoes",
   "Beauty",
-  "Home",
-  "Sports",
+  "Home & Living",
   "Food",
   "Grocery",
   "Stationery",
-  "Accessories",
   "Tools",
+  "Arts",
 ];
 
 const DEFAULT_PAGINATION = {
@@ -32,6 +30,10 @@ export default function Products() {
 
   const [category, setCategory] = useState(
     searchParams.get("category") || ""
+  );
+
+  const [subcategory, setSubcategory] = useState(
+    searchParams.get("subcategory") || ""
   );
 
   const [storeId, setStoreId] = useState(
@@ -104,6 +106,10 @@ export default function Products() {
 
     if (category) {
       params.set("category", category);
+    }
+
+    if (subcategory) {
+      params.set("subcategory", subcategory);
     }
 
     if (storeId) {
@@ -181,6 +187,7 @@ export default function Products() {
   }, [
     currentSearch,
     category,
+    subcategory,
     storeId,
     minPrice,
     maxPrice,
@@ -201,6 +208,10 @@ export default function Products() {
 
     if (category) {
       params.set("category", category);
+    }
+
+    if (subcategory) {
+      params.set("subcategory", subcategory);
     }
 
     if (storeId) {
@@ -233,6 +244,7 @@ export default function Products() {
   }, [
     currentSearch,
     category,
+    subcategory,
     storeId,
     minPrice,
     maxPrice,
@@ -248,6 +260,7 @@ export default function Products() {
     setPage(1);
   }, [
     category,
+    subcategory,
     storeId,
     minPrice,
     maxPrice,
@@ -260,6 +273,7 @@ export default function Products() {
 
   function clearFilters() {
     setCategory("");
+    setSubcategory("");
     setStoreId("");
     setMinPrice("");
     setMaxPrice("");
@@ -320,6 +334,10 @@ export default function Products() {
   function removeFilter(type) {
     if (type === "category") {
       setCategory("");
+    }
+
+    if (type === "subcategory") {
+      setSubcategory("");
     }
 
     if (type === "store") {
@@ -439,6 +457,7 @@ export default function Products() {
               type="button"
               onClick={() => {
                 setCategory("");
+                setSubcategory("");
                 setPage(1);
               }}
               className={`shrink-0 rounded-full px-5 py-2.5 text-xs font-black transition ${
@@ -459,6 +478,7 @@ export default function Products() {
                   setCategory(
                     category === item ? "" : item
                   );
+                  setSubcategory("");
                   setPage(1);
                 }}
                 className={`shrink-0 rounded-full px-5 py-2.5 text-xs font-black transition ${
@@ -739,6 +759,18 @@ export default function Products() {
                 className="rounded-full border border-[#c4dfe2] bg-[#e4f0f2] px-3 py-1.5 text-xs font-bold text-[#55757c]"
               >
                 {category} ×
+              </button>
+
+            )}
+
+            {subcategory && (
+
+              <button
+                type="button"
+                onClick={() => removeFilter("subcategory")}
+                className="rounded-full border border-[#c4dfe2] bg-[#e4f0f2] px-3 py-1.5 text-xs font-bold text-[#55757c]"
+              >
+                {subcategory} ×
               </button>
 
             )}

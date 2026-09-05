@@ -5,7 +5,9 @@ import Order from "../models/Order.js";
 import stripe from "../utils/stripe.js";
 import {
   validateCart,
+  validateBuyNowItem,
   createOrderFromCart,
+  createOrderFromBuyNow,
 } from "../services/orderService.js";
 
 /* =========================================================
@@ -308,15 +310,54 @@ export async function createRazorpayOrder(
   try {
     /*
     ---------------------------------------------------------
-    Validate cart without creating an order
+    Checkout modes:
+    
+    CART
+      → validate current cart
+
+    BUY_NOW
+      → validate selected product directly
     ---------------------------------------------------------
     */
 
     const {
-      total,
-    } = await validateCart(
-      req.user._id
-    );
+      checkoutType = "CART",
+      productId,
+      quantity,
+    } = req.body;
+
+    let total;
+
+    if (checkoutType === "BUY_NOW") {
+      /*
+      -------------------------------------------------------
+      Validate Buy Now product on the server.
+      Never trust price/product data from frontend.
+      -------------------------------------------------------
+      */
+
+      const buyNowData =
+        await validateBuyNowItem(
+          req.user._id,
+          productId,
+          quantity
+        );
+
+      total = buyNowData.total;
+    } else {
+      /*
+      -------------------------------------------------------
+      Existing cart checkout
+      -------------------------------------------------------
+      */
+
+      const cartData =
+        await validateCart(
+          req.user._id
+        );
+
+      total = cartData.total;
+    }
 
     /*
     ---------------------------------------------------------
@@ -333,6 +374,33 @@ export async function createRazorpayOrder(
 
         receipt:
           `receipt_${Date.now()}`,
+
+        /*
+        -----------------------------------------------------
+        Store checkout information inside Razorpay order.
+
+        This lets the verification step determine whether
+        this payment belongs to CART or BUY NOW without
+        trusting the browser after payment.
+        -----------------------------------------------------
+        */
+
+        notes: {
+          checkoutType:
+            checkoutType === "BUY_NOW"
+              ? "BUY_NOW"
+              : "CART",
+
+          ...(checkoutType === "BUY_NOW"
+            ? {
+                productId:
+                  productId.toString(),
+
+                quantity:
+                  Number(quantity).toString(),
+              }
+            : {}),
+        },
       });
 
     res.json({
@@ -486,28 +554,9 @@ export async function verifyRazorpayPayment(
 
     /*
     ---------------------------------------------------------
-    6. VALIDATE CART + CURRENT TOTAL
+    6. VALIDATE PAYMENT CURRENCY
     ---------------------------------------------------------
     */
-
-    const {
-      total,
-    } = await validateCart(
-      req.user._id
-    );
-
-    const expectedAmount =
-      Math.round(total * 100);
-
-    if (
-      Number(razorpayOrder.amount) !==
-      expectedAmount
-    ) {
-      return res.status(400).json({
-        message:
-          "Payment amount does not match the cart total.",
-      });
-    }
 
     if (
       razorpayOrder.currency !==
@@ -521,30 +570,156 @@ export async function verifyRazorpayPayment(
 
     /*
     ---------------------------------------------------------
-    7. CREATE PAID ORDER
+    7. DETERMINE CHECKOUT TYPE
+    ---------------------------------------------------------
+
+    We read this from the Razorpay order notes created
+    by our server.
+
+    This prevents the browser from changing CART into
+    BUY_NOW or vice versa during verification.
     ---------------------------------------------------------
     */
 
-    const order =
-      await createOrderFromCart({
-        customerId:
-          req.user._id,
-
-        shippingAddress,
-
-        paymentStatus:
-          "PAID",
-
-        razorpayOrderId:
-          razorpay_order_id,
-
-        razorpayPaymentId:
-          razorpay_payment_id,
-      });
+    const checkoutType =
+      razorpayOrder.notes?.checkoutType ||
+      "CART";
 
     /*
     ---------------------------------------------------------
-    8. SUCCESS RESPONSE
+    8. VALIDATE PAYMENT AMOUNT
+    ---------------------------------------------------------
+    */
+
+    let expectedAmount;
+
+    if (checkoutType === "BUY_NOW") {
+      const productId =
+        razorpayOrder.notes?.productId;
+
+      const quantity =
+        Number(
+          razorpayOrder.notes?.quantity
+        );
+
+      if (!productId || !quantity) {
+        return res.status(400).json({
+          message:
+            "Razorpay Buy Now order information is incomplete.",
+        });
+      }
+
+      /*
+      -------------------------------------------------------
+      Re-fetch the actual product and calculate its current
+      server-side total.
+      -------------------------------------------------------
+      */
+
+      const buyNowData =
+        await validateBuyNowItem(
+          req.user._id,
+          productId,
+          quantity
+        );
+
+      expectedAmount =
+        Math.round(
+          buyNowData.total * 100
+        );
+    } else {
+      /*
+      -------------------------------------------------------
+      Existing cart checkout
+      -------------------------------------------------------
+      */
+
+      const cartData =
+        await validateCart(
+          req.user._id
+        );
+
+      expectedAmount =
+        Math.round(
+          cartData.total * 100
+        );
+    }
+
+    if (
+      Number(razorpayOrder.amount) !==
+      expectedAmount
+    ) {
+      return res.status(400).json({
+        message:
+          "Payment amount does not match the order total.",
+      });
+    }
+
+    /*
+    ---------------------------------------------------------
+    9. CREATE PAID ORDER
+    ---------------------------------------------------------
+    */
+
+    let order;
+
+    if (checkoutType === "BUY_NOW") {
+      const productId =
+        razorpayOrder.notes?.productId;
+
+      const quantity =
+        Number(
+          razorpayOrder.notes?.quantity
+        );
+
+      order =
+        await createOrderFromBuyNow({
+          customerId:
+            req.user._id,
+
+          productId,
+
+          quantity,
+
+          shippingAddress,
+
+          paymentStatus:
+            "PAID",
+
+          razorpayOrderId:
+            razorpay_order_id,
+
+          razorpayPaymentId:
+            razorpay_payment_id,
+        });
+    } else {
+      /*
+      -------------------------------------------------------
+      Existing cart order creation
+      -------------------------------------------------------
+      */
+
+      order =
+        await createOrderFromCart({
+          customerId:
+            req.user._id,
+
+          shippingAddress,
+
+          paymentStatus:
+            "PAID",
+
+          razorpayOrderId:
+            razorpay_order_id,
+
+          razorpayPaymentId:
+            razorpay_payment_id,
+        });
+    }
+
+    /*
+    ---------------------------------------------------------
+    10. SUCCESS RESPONSE
     ---------------------------------------------------------
     */
 
