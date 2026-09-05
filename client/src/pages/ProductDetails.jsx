@@ -12,7 +12,7 @@ export default function ProductDetails() {
 
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [buying, setBuying] = useState(false);
+
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -86,27 +86,18 @@ export default function ProductDetails() {
     }
   }
 
-  async function buyNow() {
-    try {
-      setBuying(true);
-      setError("");
+  function buyNow() {
+    if (!product || isOutOfStock) return;
 
-      await api.post("/cart/items", {
-        productId: product._id,
-        quantity,
-      });
-
-      navigate("/cart");
-    } catch (err) {
-      console.error("BUY NOW ERROR:", err);
-
-      setError(
-        err.response?.data?.message ||
-          "Unable to proceed with checkout."
-      );
-    } finally {
-      setBuying(false);
-    }
+    navigate("/checkout", {
+      state: {
+        buyNowItem: {
+          productId: product._id,
+          product: product,
+          quantity,
+        },
+      },
+    });
   }
 
   if (loading) {
@@ -324,7 +315,7 @@ export default function ProductDetails() {
                 <button
                   type="button"
                   onClick={addToCart}
-                  disabled={adding || buying}
+                  disabled={adding}
                   className="rounded-lg border-2 border-[#174c3c] py-3 font-black text-[#174c3c] disabled:opacity-50"
                 >
                   {adding
@@ -335,12 +326,10 @@ export default function ProductDetails() {
                 <button
                   type="button"
                   onClick={buyNow}
-                  disabled={adding || buying}
+                  disabled={adding}
                   className="rounded-lg bg-[#174c3c] py-3 font-black text-white disabled:opacity-50"
                 >
-                  {buying
-                    ? "Processing..."
-                    : "⚡ Buy Now"}
+                  ⚡ Buy Now
                 </button>
 
               </div>
@@ -502,8 +491,7 @@ export default function ProductDetails() {
                       onClick={decreaseQuantity}
                       disabled={
                         quantity <= 1 ||
-                        adding ||
-                        buying
+                        adding
                       }
                       className="w-11 text-lg font-bold hover:bg-slate-100 disabled:opacity-40"
                     >
@@ -519,8 +507,7 @@ export default function ProductDetails() {
                       onClick={increaseQuantity}
                       disabled={
                         quantity >= product.stock ||
-                        adding ||
-                        buying
+                        adding
                       }
                       className="w-11 text-lg font-bold hover:bg-slate-100 disabled:opacity-40"
                     >
@@ -540,7 +527,7 @@ export default function ProductDetails() {
                   <button
                     type="button"
                     onClick={addToCart}
-                    disabled={adding || buying}
+                    disabled={adding}
                     className="rounded-lg border-2 border-[#174c3c] py-4 font-black text-[#174c3c] transition hover:bg-[#eef6f2] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {adding
@@ -551,12 +538,10 @@ export default function ProductDetails() {
                   <button
                     type="button"
                     onClick={buyNow}
-                    disabled={adding || buying}
+                    disabled={adding}
                     className="rounded-lg bg-[#174c3c] py-4 font-black text-white transition hover:bg-[#123c30] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {buying
-                      ? "Processing..."
-                      : "⚡ Buy Now"}
+                    ⚡ Buy Now
                   </button>
 
                 </div>
