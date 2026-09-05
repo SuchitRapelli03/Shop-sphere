@@ -130,6 +130,98 @@ export async function validateCart(customerId) {
 
 /*
 =========================================================
+VALIDATE BUY NOW ITEM
+=========================================================
+*/
+
+export async function validateBuyNowItem(
+  customerId,
+  productId,
+  quantity
+) {
+  if (!productId) {
+    throw new Error("Product is required");
+  }
+
+  const parsedQuantity = Number(quantity);
+
+  if (
+    !Number.isInteger(parsedQuantity) ||
+    parsedQuantity < 1
+  ) {
+    throw new Error("Invalid quantity");
+  }
+
+  const product = await Product.findById(productId);
+
+  if (!product || !product.active) {
+    throw new Error(
+      "This product is no longer available"
+    );
+  }
+
+  if (product.stock < parsedQuantity) {
+    throw new Error(
+      `Insufficient stock for ${product.name}`
+    );
+  }
+
+  const store = await Store.findOne({
+    _id: product.storeId,
+    status: "ACTIVE",
+  });
+
+  if (!store) {
+    throw new Error(
+      "This store is no longer available"
+    );
+  }
+
+  const vendor = await User.findOne({
+    _id: store.vendorId,
+    role: "VENDOR",
+    status: "ACTIVE",
+  });
+
+  if (!vendor) {
+    throw new Error(
+      "This store is no longer available because its vendor is inactive or deleted."
+    );
+  }
+
+  if (
+    product.vendorId.toString() !==
+    vendor._id.toString()
+  ) {
+    throw new Error(
+      "Product vendor is invalid"
+    );
+  }
+
+  const items = [
+    {
+      productId: product._id,
+      name: product.name,
+      quantity: parsedQuantity,
+      price: product.price,
+    },
+  ];
+
+  const total =
+    product.price * parsedQuantity;
+
+  return {
+    product,
+    store,
+    vendor,
+    items,
+    total,
+  };
+}
+
+
+/*
+=========================================================
 ATOMIC STOCK DECREMENT
 =========================================================
 */
@@ -195,7 +287,7 @@ export async function reserveStock(items) {
 
 /*
 =========================================================
-CREATE ORDER
+CREATE ORDER FROM CART
 =========================================================
 */
 
@@ -253,6 +345,98 @@ export async function createOrderFromCart({
     cart.items = [];
 
     await cart.save();
+
+    /*
+    Send confirmation email.
+    */
+
+    await sendOrderEmail({
+      to: (
+        await User.findById(customerId)
+      )?.email,
+
+      orderId: order._id.toString(),
+
+      total,
+    });
+
+    return order;
+
+  } catch (error) {
+    /*
+    Order creation failed, so restore stock.
+    */
+
+    for (const item of items) {
+      await Product.findByIdAndUpdate(
+        item.productId,
+        {
+          $inc: {
+            stock: item.quantity,
+          },
+        }
+      );
+    }
+
+    throw error;
+  }
+}
+
+
+/*
+=========================================================
+CREATE BUY NOW ORDER
+=========================================================
+*/
+
+export async function createOrderFromBuyNow({
+  customerId,
+  productId,
+  quantity,
+  shippingAddress,
+  paymentStatus = "PENDING",
+  razorpayOrderId,
+  razorpayPaymentId,
+}) {
+  const {
+    store,
+    vendor,
+    items,
+    total,
+  } = await validateBuyNowItem(
+    customerId,
+    productId,
+    quantity
+  );
+
+  /*
+  Reserve stock atomically.
+  */
+
+  await reserveStock(items);
+
+  try {
+    const order = await Order.create({
+      customerId,
+
+      storeId: store._id,
+
+      vendorId: vendor._id,
+
+      items,
+
+      total,
+
+      shippingAddress,
+
+      paymentStatus,
+
+      status: "PLACED",
+
+      razorpayOrderId,
+
+      razorpayPaymentId,
+    });
 
     /*
     Send confirmation email.
