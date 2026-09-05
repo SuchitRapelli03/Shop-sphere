@@ -25,6 +25,8 @@ export default function VendorDashboard() {
     name: "",
     slug: "",
     description: "",
+    logo: "",
+    banner: "",
   });
 
   const [product, setProduct] = useState({
@@ -43,6 +45,8 @@ export default function VendorDashboard() {
     name: "",
     slug: "",
     description: "",
+    logo: "",
+    banner: "",
   });
 
   const [editingProductId, setEditingProductId] = useState(null);
@@ -113,6 +117,24 @@ export default function VendorDashboard() {
   // STORE CRUD
   // =========================================================
 
+  async function uploadStoreImage(file) {
+    if (!file) return "";
+
+    const reader = new FileReader();
+
+    const base64 = await new Promise((resolve, reject) => {
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const response = await api.post("/uploads/image", {
+      image: base64,
+    });
+
+    return response.data.url;
+  }
+
   async function createStore(e) {
     e.preventDefault();
 
@@ -122,7 +144,24 @@ export default function VendorDashboard() {
     }
 
     try {
-      const response = await api.post("/stores", store);
+            let logoUrl = "";
+      let bannerUrl = "";
+
+      if (store.logo) {
+        logoUrl = await uploadStoreImage(store.logo);
+      }
+
+      if (store.banner) {
+        bannerUrl = await uploadStoreImage(store.banner);
+      }
+
+      const response = await api.post("/stores", {
+        name: store.name,
+        slug: store.slug,
+        description: store.description,
+        logo: logoUrl,
+        banner: bannerUrl,
+      });
 
       alert("Store created successfully!");
 
@@ -130,6 +169,8 @@ export default function VendorDashboard() {
         name: "",
         slug: "",
         description: "",
+        logo: "",
+        banner: "",
       });
 
       setProduct((current) => ({
@@ -155,6 +196,8 @@ export default function VendorDashboard() {
       name: currentStore.name || "",
       slug: currentStore.slug || "",
       description: currentStore.description || "",
+      logo: currentStore.logo || "",
+      banner: currentStore.banner || "",
     });
   }
 
@@ -165,43 +208,60 @@ export default function VendorDashboard() {
       name: "",
       slug: "",
       description: "",
+      logo: "",
+      banner: "",
     });
   }
 
-  async function updateStore(e) {
-    e.preventDefault();
+ async function updateStore(e) {
+  e.preventDefault();
 
-    if (!editingStoreId) return;
+  if (!editingStoreId) return;
 
-    if (
-      !editStore.name.trim() ||
-      !editStore.slug.trim()
-    ) {
-      alert("Store name and slug are required.");
-      return;
-    }
-
-    try {
-      await api.put(`/stores/${editingStoreId}`, {
-        name: editStore.name.trim(),
-        slug: editStore.slug.trim().toLowerCase(),
-        description: editStore.description.trim(),
-      });
-
-      alert("Store updated successfully!");
-
-      cancelEditingStore();
-
-      await loadDashboard();
-    } catch (err) {
-      console.error("UPDATE STORE ERROR:", err);
-
-      alert(
-        err.response?.data?.message ||
-          "Unable to update store"
-      );
-    }
+  if (
+    !editStore.name.trim() ||
+    !editStore.slug.trim()
+  ) {
+    alert("Store name and slug are required.");
+    return;
   }
+
+  try {
+    let logoUrl = editStore.logo;
+    let bannerUrl = editStore.banner;
+
+    // Upload new logo only if a new file was selected
+    if (editStore.logo instanceof File) {
+      logoUrl = await uploadStoreImage(editStore.logo);
+    }
+
+    // Upload new banner only if a new file was selected
+    if (editStore.banner instanceof File) {
+      bannerUrl = await uploadStoreImage(editStore.banner);
+    }
+
+    await api.put(`/stores/${editingStoreId}`, {
+      name: editStore.name.trim(),
+      slug: editStore.slug.trim().toLowerCase(),
+      description: editStore.description.trim(),
+      logo: logoUrl,
+      banner: bannerUrl,
+    });
+
+    alert("Store updated successfully!");
+
+    cancelEditingStore();
+
+    await loadDashboard();
+  } catch (err) {
+    console.error("UPDATE STORE ERROR:", err);
+
+    alert(
+      err.response?.data?.message ||
+        "Unable to update store"
+    );
+  }
+}
 
   async function deleteStore(storeId) {
     const confirmed = window.confirm(
@@ -1912,6 +1972,46 @@ export default function VendorDashboard() {
                               }
                             />
 
+                            <div className="grid gap-3 sm:grid-cols-2">
+
+                              <div>
+                                <label className="mb-1.5 block text-[10px] font-semibold text-[#5f574e]">
+                                  Store Logo
+                                </label>
+
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) =>
+                                    setEditStore({
+                                      ...editStore,
+                                      logo: e.target.files?.[0] || "",
+                                    })
+                                  }
+                                  className="w-full rounded-lg border border-[#ded6c9] bg-white px-3 py-2 text-xs text-[#5f574e] outline-none file:mr-3 file:rounded-md file:border-0 file:bg-[#edf7f5] file:px-2.5 file:py-1.5 file:text-[10px] file:font-semibold file:text-[#0f766e] hover:border-[#8fc9c1]"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="mb-1.5 block text-[10px] font-semibold text-[#5f574e]">
+                                  Store Banner
+                                </label>
+
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) =>
+                                    setEditStore({
+                                      ...editStore,
+                                      banner: e.target.files?.[0] || "",
+                                    })
+                                  }
+                                  className="w-full rounded-lg border border-[#ded6c9] bg-white px-3 py-2 text-xs text-[#5f574e] outline-none file:mr-3 file:rounded-md file:border-0 file:bg-[#edf7f5] file:px-2.5 file:py-1.5 file:text-[10px] file:font-semibold file:text-[#0f766e] hover:border-[#8fc9c1]"
+                                />
+                              </div>
+
+                            </div>
+
                             <div className="flex gap-2 pt-1">
 
                               <button
@@ -2075,6 +2175,46 @@ export default function VendorDashboard() {
                       })
                     }
                   />
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+
+                    <div>
+                      <label className="mb-1.5 block text-[10px] font-semibold text-[#5f574e]">
+                        Store Logo
+                      </label>
+
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          setStore({
+                            ...store,
+                            logo: e.target.files?.[0] || "",
+                          })
+                        }
+                        className="w-full rounded-lg border border-[#ded6c9] bg-white px-3 py-2 text-xs text-[#5f574e] outline-none file:mr-3 file:rounded-md file:border-0 file:bg-[#edf7f5] file:px-2.5 file:py-1.5 file:text-[10px] file:font-semibold file:text-[#0f766e] hover:border-[#8fc9c1]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-[10px] font-semibold text-[#5f574e]">
+                        Store Banner
+                      </label>
+
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          setStore({
+                            ...store,
+                            banner: e.target.files?.[0] || "",
+                          })
+                        }
+                        className="w-full rounded-lg border border-[#ded6c9] bg-white px-3 py-2 text-xs text-[#5f574e] outline-none file:mr-3 file:rounded-md file:border-0 file:bg-[#edf7f5] file:px-2.5 file:py-1.5 file:text-[10px] file:font-semibold file:text-[#0f766e] hover:border-[#8fc9c1]"
+                      />
+                    </div>
+
+                  </div>
 
                   <button
                     type="submit"

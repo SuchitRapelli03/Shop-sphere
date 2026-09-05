@@ -15,6 +15,7 @@ export async function createProduct(req, res) {
       price,
       stock,
       category,
+      subcategory,
       images,
     } = req.body;
 
@@ -44,6 +45,7 @@ export async function createProduct(req, res) {
       price: Number(price),
       stock: Number(stock ?? 0),
       category: category?.trim() || "",
+      subcategory: subcategory?.trim() || "",
       images: Array.isArray(images) ? images : [],
     });
 
@@ -67,6 +69,7 @@ export async function listProducts(req, res) {
       search,
       storeId,
       category,
+      subcategory,
       minPrice,
       maxPrice,
       sort = "newest",
@@ -84,6 +87,10 @@ export async function listProducts(req, res) {
 
     if (category) {
       filter.category = category;
+    }
+
+    if (subcategory) {
+      filter.subcategory = subcategory;
     }
 
     if (search?.trim()) {
@@ -362,6 +369,7 @@ export async function updateProduct(
       price,
       stock,
       category,
+      subcategory,
       images,
       active,
     } = req.body;
@@ -417,6 +425,10 @@ export async function updateProduct(
     if (category !== undefined) {
       product.category =
         category.trim();
+    }
+
+    if (subcategory !== undefined) {
+      product.subcategory = subcategory.trim();
     }
 
     if (images !== undefined) {

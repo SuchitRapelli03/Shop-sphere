@@ -68,73 +68,81 @@ export default function Home() {
   ========================================================= */
 
   const quickCategories = [
-    { name: "Men", icon: "♂" },
-    { name: "Women", icon: "♀" },
-    { name: "Kids", icon: "🧸" },
-    { name: "Food", icon: "🍽️" },
-    { name: "Grocery", icon: "🥑" },
-    { name: "Electronics", icon: "💻" },
-    { name: "Beauty", icon: "💄" },
-    { name: "Home Appliances", icon: "🏠" },
-    { name: "Stationery", icon: "✏️" },
-    { name: "Tools", icon: "🔧" },
-    { name: "Arts", icon: "🎨" },
-  ];
+    {
+      name: "Men",
+      icon: "♂",
+      category: "Fashion",
+      subcategory: "Men",
+    },
+    {
+      name: "Women",
+      icon: "♀",
+      category: "Fashion",
+      subcategory: "Women",
+    },
+    {
+      name: "Kids",
+      icon: "🧸",
+      category: "Fashion",
+      subcategory: "Kids",
+    },
+    {
+      name: "Food",
+      icon: "🍽️",
+      category: "Food",
+    },
+    {
+      name: "Grocery",
+      icon: "🥑",
+      category: "Grocery",
+    },
+    {
+      name: "Electronics",
+      icon: "💻",
+      category: "Electronics",
+    },
+    {
+      name: "Beauty",
+      icon: "💄",
+      category: "Beauty",
+    },
+    {
+      name: "Home & Living",
+      icon: "🏠",
+      category: "Home & Living",
+    },
+    {
+      name: "Stationery",
+      icon: "✏️",
+      category: "Stationery",
+    },
+    {
+      name: "Tools",
+      icon: "🔧",
+      category: "Tools",
+    },
+    {
+      name: "Arts",
+      icon: "🎨",
+      category: "Arts",
+    },
+];
 
   /* =========================================================
      SHOPPING DEPARTMENTS
   ========================================================= */
 
   const departments = [
-    {
-      name: "Fashion",
-      icon: "👕",
-      description: "Everyday styles",
-      bg: "bg-[#eadfd5]",
-    },
-    {
-      name: "Electronics",
-      icon: "🎧",
-      description: "Tech & gadgets",
-      bg: "bg-[#d9ecef]",
-    },
-    {
-      name: "Home & Living",
-      icon: "🏠",
-      description: "Make it yours",
-      bg: "bg-[#e7e0d5]",
-    },
-    {
-      name: "Beauty",
-      icon: "💄",
-      description: "Care & glow",
-      bg: "bg-[#e7dfe7]",
-    },
-    {
-      name: "Sports",
-      icon: "⚽",
-      description: "Move better",
-      bg: "bg-[#dce8df]",
-    },
-    {
-      name: "Food & Grocery",
-      icon: "🥑",
-      description: "Daily essentials",
-      bg: "bg-[#dfe8d9]",
-    },
-    {
-      name: "Stationery",
-      icon: "✏️",
-      description: "Study & create",
-      bg: "bg-[#e3e1d6]",
-    },
-    {
-      name: "Accessories",
-      icon: "⌚",
-      description: "Little details",
-      bg: "bg-[#dce9ec]",
-    },
-  ];
+  { name: "Fashion", icon: "👕", description: "Everyday styles", bg: "bg-[#eadfd5]" },
+  { name: "Electronics", icon: "🎧", description: "Tech & gadgets", bg: "bg-[#d9ecef]" },
+  { name: "Home & Living", icon: "🏠", description: "Make it yours", bg: "bg-[#e7e0d5]" },
+  { name: "Beauty", icon: "💄", description: "Care & glow", bg: "bg-[#e7dfe7]" },
+  { name: "Food", icon: "🍽️", description: "Tasty favorites", bg: "bg-[#dfe8d9]" },
+  { name: "Grocery", icon: "🥑", description: "Daily essentials", bg: "bg-[#dfe8d9]" },
+  { name: "Stationery", icon: "✏️", description: "Study & create", bg: "bg-[#e3e1d6]" },
+  { name: "Tools", icon: "🔧", description: "Build & repair", bg: "bg-[#dce9ec]" },
+  { name: "Arts", icon: "🎨", description: "Create & express", bg: "bg-[#e7e0d5]" },
+];
 
   /* =========================================================
      PRODUCT GROUPS
@@ -184,7 +192,17 @@ export default function Home() {
 
                 <Link
                   key={category.name}
-                  to={`/products?category=${encodeURIComponent(category.name)}`}
+                  to={
+                    category.subcategory
+                      ? `/products?category=${encodeURIComponent(
+                          category.category
+                        )}&subcategory=${encodeURIComponent(
+                          category.subcategory
+                        )}`
+                      : `/products?category=${encodeURIComponent(
+                          category.category
+                        )}`
+                  }
                   className="group relative flex min-w-[88px] shrink-0 items-center justify-center gap-2 border-r border-[#e1d9cf] px-3 py-3 transition duration-200 first:border-l hover:bg-[#e9f3f4]"
                 >
 
@@ -403,14 +421,14 @@ export default function Home() {
           linkTo="/products"
         />
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        <div className="mt-6 flex gap-3 overflow-x-auto pb-3 scrollbar-hide">
 
           {departments.map((department) => (
 
             <Link
               key={department.name}
               to={`/products?category=${encodeURIComponent(department.name)}`}
-              className="group rounded-2xl border border-[#d9d1c7] bg-[#9A623D] p-3 transition duration-200 hover:-translate-y-1 hover:border-[#a6cbd0] hover:bg-[#D4B08A] hover:shadow-md"
+              className="group w-[calc(33.333%-0.5rem)] min-w-[calc(33.333%-0.5rem)] shrink-0 rounded-2xl border border-[#d9d1c7] bg-[#9A623D] p-3 transition duration-200 hover:-translate-y-1 hover:border-[#a6cbd0] hover:bg-[#D4B08A] hover:shadow-md lg:w-[calc(20%-0.6rem)] lg:min-w-[calc(20%-0.6rem)]"
             >
 
               <div
@@ -868,14 +886,16 @@ function HeroTile({ emoji, label, bg }) {
 
 function ProductRail({ products }) {
   return (
-    <div className="mt-6 flex gap-3 overflow-x-auto pb-3 scrollbar-hide">
+    <div className="mt-6 flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
 
       {products.map((product) => (
 
-        <ProductCard
+        <div
           key={product._id}
-          product={product}
-        />
+          className="w-[220px] min-w-[220px] shrink-0 sm:w-[240px] sm:min-w-[240px] lg:w-[250px] lg:min-w-[250px]"
+        >
+          <ProductCard product={product} />
+        </div>
 
       ))}
 
