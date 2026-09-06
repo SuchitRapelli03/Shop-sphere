@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import AdminLayout from "../components/AdminLayout.jsx";
 import api from "../services/api.js";
 
 export default function AdminUsers() {
@@ -99,180 +99,196 @@ export default function AdminUsers() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-6 py-12">
+  <AdminLayout
+    title="User Management"
+    subtitle="Manage ShopSphere customer and administrator accounts"
+    search={search}
+    onSearchChange={setSearch}
+    searchPlaceholder="Search users by name or email..."
+    actions={
+      <button
+        type="button"
+        onClick={loadUsers}
+        className="flex items-center gap-2 rounded-2xl bg-white/80 px-3 py-2.5 text-xs font-bold text-slate-500 shadow-[4px_4px_10px_rgba(163,177,198,0.2),-4px_-4px_10px_rgba(255,255,255,0.9)] transition hover:bg-white hover:text-violet-500"
+      >
+        <span className="text-base">↻</span>
+        <span className="hidden sm:inline">Refresh</span>
+      </button>
+    }
+  >
+    {/* PAGE HEADER */}
+    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-500">
+          Administration
+        </p>
 
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <p className="font-semibold text-indigo-600">
-              ShopSphere Admin
-            </p>
+        <h2 className="mt-1 text-2xl font-black text-slate-800 md:text-3xl">
+          User Management
+        </h2>
 
-            <h1 className="mt-1 text-4xl font-black">
-              User Management
-            </h1>
+        <p className="mt-2 text-sm text-slate-400">
+          View and manage ShopSphere users.
+        </p>
+      </div>
 
-            <p className="mt-2 text-slate-600">
-              View and manage ShopSphere users.
-            </p>
-          </div>
+      <div className="inline-flex w-fit items-center gap-2 rounded-2xl bg-white/80 px-4 py-2 text-xs font-bold text-slate-600 shadow-[4px_4px_10px_rgba(163,177,198,0.25),-4px_-4px_10px_rgba(255,255,255,0.9)]">
+        <span className="h-2 w-2 rounded-full bg-sky-400" />
+        {users.length} users
+      </div>
+    </div>
 
-          <Link
-            to="/admin"
-            className="rounded-xl border bg-white px-5 py-3 font-semibold shadow-sm transition hover:bg-slate-50"
-          >
-            ← Back to Dashboard
-          </Link>
+    {/* FILTER */}
+    <section className="mb-6 rounded-[2rem] border border-white/60 bg-[#e6ebf5] p-5 shadow-[10px_10px_20px_rgba(163,177,198,0.3),-10px_-10px_20px_rgba(255,255,255,0.9)]">
+      <div className="flex flex-col gap-4 md:flex-row">
+        <div className="flex flex-1 items-center rounded-2xl bg-white/80 px-4 py-3 shadow-sm md:hidden">
+          <span className="mr-2 text-xs text-slate-400">🔎</span>
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search users..."
+            className="w-full bg-transparent text-xs outline-none placeholder:text-slate-400"
+          />
         </div>
 
-        <section className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
-
-          <div className="flex flex-col gap-4 md:flex-row">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or email..."
-              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-            />
-
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-indigo-500"
-            >
-              <option value="">All Roles</option>
-              <option value="CUSTOMER">Customer</option>
-              <option value="VENDOR">Vendor</option>
-              <option value="SUPER_ADMIN">Super Admin</option>
-            </select>
-          </div>
-        </section>
-
-        {error && (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            {error}
-          </div>
-        )}
-
-        <section className="mt-8 overflow-hidden rounded-2xl border bg-white shadow-sm">
-
-          {loading ? (
-            <div className="p-8 text-center text-slate-500">
-              Loading users...
-            </div>
-          ) : users.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">
-              No users found.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px]">
-
-                <thead className="border-b bg-slate-50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-600">
-                      User
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-600">
-                      Email
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-600">
-                      Role
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-600">
-                      Joined
-                    </th>
-
-                    <th className="px-6 py-4 text-right text-sm font-bold text-slate-600">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y">
-                  {users.map((user) => (
-                    <tr
-                      key={user._id}
-                      className="transition hover:bg-slate-50"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700">
-                            {user.name
-                              ?.charAt(0)
-                              ?.toUpperCase() || "U"}
-                          </div>
-
-                          <div>
-                            <p className="font-semibold text-slate-900">
-                              {user.name}
-                            </p>
-
-                            <p className="text-xs text-slate-400">
-                              {user._id}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-4 text-sm text-slate-600">
-                        {user.email}
-                      </td>
-
-                      <td className="px-6 py-4">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-bold ${getRoleStyle(
-                            user.role
-                          )}`}
-                        >
-                          {user.role}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-4 text-sm text-slate-600">
-                        {user.createdAt
-                          ? new Date(
-                              user.createdAt
-                            ).toLocaleDateString()
-                          : "—"}
-                      </td>
-
-                      <td className="px-6 py-4 text-right">
-                        {user.role === "SUPER_ADMIN" ? (
-                          <span className="text-sm font-semibold text-slate-400">
-                            Protected
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() =>
-                              handleDelete(user)
-                            }
-                            disabled={
-                              deletingId === user._id
-                            }
-                            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {deletingId === user._id
-                              ? "Deleting..."
-                              : "Delete"}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-
-              </table>
-            </div>
-          )}
-
-        </section>
-
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          className="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-xs font-bold text-slate-500 outline-none shadow-sm"
+        >
+          <option value="">All Roles</option>
+          <option value="CUSTOMER">Customer</option>
+          <option value="VENDOR">Vendor</option>
+          <option value="SUPER_ADMIN">Super Admin</option>
+        </select>
       </div>
-    </main>
-  );
+    </section>
+
+    {/* ERROR */}
+    {error && (
+      <div className="mb-6 rounded-[2rem] border border-rose-200 bg-rose-50/80 p-5">
+        <p className="font-bold text-rose-600">
+          User operation failed
+        </p>
+
+        <p className="mt-1 text-sm text-slate-600">
+          {error}
+        </p>
+      </div>
+    )}
+
+    {/* TABLE */}
+    <section className="overflow-hidden rounded-[2rem] border border-white/60 bg-[#e6ebf5] shadow-[10px_10px_20px_rgba(163,177,198,0.3),-10px_-10px_20px_rgba(255,255,255,0.9)]">
+      {loading ? (
+        <div className="p-12 text-center text-sm font-semibold text-slate-400">
+          Loading users...
+        </div>
+      ) : users.length === 0 ? (
+        <div className="p-12 text-center">
+          <div className="text-4xl">👥</div>
+
+          <p className="mt-3 text-sm font-bold text-slate-500">
+            No users found.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[800px] text-left text-xs">
+            <thead className="border-b border-slate-200/60 bg-white/40">
+              <tr>
+                <th className="px-5 py-4 font-black uppercase tracking-wide text-slate-400">
+                  User
+                </th>
+
+                <th className="px-5 py-4 font-black uppercase tracking-wide text-slate-400">
+                  Email
+                </th>
+
+                <th className="px-5 py-4 font-black uppercase tracking-wide text-slate-400">
+                  Role
+                </th>
+
+                <th className="px-5 py-4 font-black uppercase tracking-wide text-slate-400">
+                  Joined
+                </th>
+
+                <th className="px-5 py-4 text-right font-black uppercase tracking-wide text-slate-400">
+                  Action
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-200/40">
+              {users.map((user) => (
+                <tr
+                  key={user._id}
+                  className="transition hover:bg-white/40"
+                >
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 font-black text-sky-600 shadow-sm">
+                        {user.name?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+
+                      <div>
+                        <p className="font-bold text-slate-800">
+                          {user.name}
+                        </p>
+
+                        <p className="mt-1 text-[9px] text-slate-400">
+                          {user._id}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="px-5 py-4 text-slate-500">
+                    {user.email}
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <span
+                      className={`rounded-full px-3 py-1 text-[9px] font-black tracking-wide ${getRoleStyle(
+                        user.role
+                      )}`}
+                    >
+                      {user.role}
+                    </span>
+                  </td>
+
+                  <td className="px-5 py-4 text-slate-500">
+                    {user.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString()
+                      : "—"}
+                  </td>
+
+                  <td className="px-5 py-4 text-right">
+                    {user.role === "SUPER_ADMIN" ? (
+                      <span className="text-[10px] font-bold text-slate-400">
+                        Protected
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(user)}
+                        disabled={deletingId === user._id}
+                        className="rounded-2xl bg-rose-500 px-4 py-2 text-[10px] font-black text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {deletingId === user._id
+                          ? "Deleting..."
+                          : "Delete"}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  </AdminLayout>
+);
 }

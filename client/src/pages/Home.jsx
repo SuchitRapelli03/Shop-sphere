@@ -177,7 +177,6 @@ export default function Home() {
 
       {/* =====================================================
           QUICK CATEGORY NAVIGATION
-          KEEPING YOUR VERSION
       ===================================================== */}
 
       <section className="border-b border-[#d8d0c5] bg-[#6EA7B7]">
