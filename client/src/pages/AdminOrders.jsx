@@ -5,7 +5,7 @@ import React, {
   useState
 } from "react";
 
-import { Link } from "react-router-dom";
+import AdminLayout from "../components/AdminLayout.jsx";
 import api from "../services/api.js";
 
 const statusOptions = [
@@ -136,336 +136,296 @@ export default function AdminOrders() {
     }
   }
 
-  return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-6 py-12">
+ return (
+  <AdminLayout
+    title="Order Management"
+    subtitle="Monitor all ShopSphere marketplace orders"
+    search={search}
+    onSearchChange={setSearch}
+    searchPlaceholder="Search orders, customers, vendors..."
+    actions={
+      <button
+        type="button"
+        onClick={loadOrders}
+        className="flex items-center gap-2 rounded-2xl bg-white/80 px-3 py-2.5 text-xs font-bold text-slate-500 shadow-[4px_4px_10px_rgba(163,177,198,0.2),-4px_-4px_10px_rgba(255,255,255,0.9)] transition hover:bg-white hover:text-violet-500"
+      >
+        <span className="text-base">↻</span>
+        <span className="hidden sm:inline">Refresh</span>
+      </button>
+    }
+  >
+    {/* PAGE HEADER */}
+    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-500">
+          Operations
+        </p>
 
-        {/* HEADER */}
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <p className="font-semibold text-indigo-600">
-              ShopSphere Admin
-            </p>
+        <h2 className="mt-1 text-2xl font-black text-slate-800 md:text-3xl">
+          Order Management
+        </h2>
 
-            <h1 className="mt-1 text-4xl font-black">
-              Order Management
-            </h1>
+        <p className="mt-2 text-sm text-slate-400">
+          View and monitor all ShopSphere orders.
+        </p>
+      </div>
 
-            <p className="mt-2 text-slate-600">
-              View and monitor all ShopSphere orders.
-            </p>
-          </div>
+      <div className="inline-flex w-fit items-center gap-2 rounded-2xl bg-white/80 px-4 py-2 text-xs font-bold text-slate-600 shadow-[4px_4px_10px_rgba(163,177,198,0.25),-4px_-4px_10px_rgba(255,255,255,0.9)]">
+        <span className="h-2 w-2 rounded-full bg-violet-400" />
+        {filteredOrders.length} orders found
+      </div>
+    </div>
 
-          <Link
-            to="/admin"
-            className="rounded-xl border bg-white px-5 py-3 font-semibold shadow-sm transition hover:bg-slate-50"
-          >
-            ← Back to Dashboard
-          </Link>
+    {/* FILTERS */}
+    <section className="mb-6 rounded-[2rem] border border-white/60 bg-[#e6ebf5] p-5 shadow-[10px_10px_20px_rgba(163,177,198,0.3),-10px_-10px_20px_rgba(255,255,255,0.9)]">
+      <div className="flex flex-col gap-4 md:flex-row">
+        <div className="flex flex-1 items-center rounded-2xl bg-white/80 px-4 py-3 shadow-sm md:hidden">
+          <span className="mr-2 text-xs text-slate-400">🔎</span>
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by order, customer, vendor or store..."
+            className="w-full bg-transparent text-xs outline-none placeholder:text-slate-400"
+          />
         </div>
 
-        {/* FILTERS */}
-        <section className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-              placeholder="Search by order, customer, vendor or store..."
-              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-            />
-
-            <select
-              value={status}
-              onChange={(e) =>
-                setStatus(e.target.value)
-              }
-              className="rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-indigo-500"
-            >
-              {statusOptions.map((item) => (
-                <option
-                  key={item || "ALL"}
-                  value={item}
-                >
-                  {item || "All Statuses"}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-4 text-sm text-slate-500">
-            {filteredOrders.length}{" "}
-            {filteredOrders.length === 1
-              ? "order"
-              : "orders"}{" "}
-            found
-          </div>
-        </section>
-
-        {/* ERROR */}
-        {error && (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            {error}
-          </div>
-        )}
-
-        {/* ORDERS */}
-        <section className="mt-8">
-          {loading ? (
-            <div className="rounded-2xl border bg-white p-10 text-center text-slate-500">
-              Loading orders...
-            </div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="rounded-2xl border bg-white p-10 text-center">
-              <div className="text-5xl">
-                📦
-              </div>
-
-              <h2 className="mt-4 text-2xl font-black">
-                No orders found
-              </h2>
-
-              <p className="mt-2 text-slate-500">
-                Try changing your search or status filter.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {filteredOrders.map((order) => (
-                <article
-                  key={order._id}
-                  className="rounded-2xl border bg-white p-6 shadow-sm"
-                >
-                  {/* ORDER HEADER */}
-                  <div className="flex flex-col justify-between gap-5 border-b pb-5 lg:flex-row lg:items-start">
-                    <div>
-                      <p className="text-sm text-slate-500">
-                        Order ID
-                      </p>
-
-                      <p className="mt-1 font-black text-slate-900">
-                        #{order._id
-                          ?.slice(-8)
-                          .toUpperCase()}
-                      </p>
-
-                      <p className="mt-2 text-sm text-slate-500">
-                        {order.createdAt
-                          ? new Date(
-                              order.createdAt
-                            ).toLocaleString(
-                              "en-IN",
-                              {
-                                dateStyle: "medium",
-                                timeStyle: "short"
-                              }
-                            )
-                          : "Date unavailable"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-slate-500">
-                        Order Status
-                      </p>
-
-                      <span
-                        className={`mt-1 inline-block rounded-full px-4 py-2 text-xs font-bold ${getStatusStyle(
-                          order.status
-                        )}`}
-                      >
-                        {order.status ||
-                          "UNKNOWN"}
-                      </span>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-slate-500">
-                        Payment
-                      </p>
-
-                      <span
-                        className={`mt-1 inline-block rounded-full px-4 py-2 text-xs font-bold ${getPaymentStyle(
-                          order.paymentStatus
-                        )}`}
-                      >
-                        {order.paymentStatus ||
-                          "UNKNOWN"}
-                      </span>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-slate-500">
-                        Total
-                      </p>
-
-                      <p className="mt-1 text-2xl font-black text-indigo-600">
-                        ₹
-                        {(order.total || 0).toLocaleString(
-                          "en-IN"
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* CUSTOMER / VENDOR / STORE */}
-                  <div className="mt-6 grid gap-4 md:grid-cols-3">
-                    {/* CUSTOMER */}
-                    <div className="rounded-xl bg-slate-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Customer
-                      </p>
-
-                      <p className="mt-2 font-bold text-slate-900">
-                        {order.customerId?.name ||
-                          "Customer unavailable"}
-                      </p>
-
-                      <p className="mt-1 text-sm text-slate-500">
-                        {order.customerId?.email ||
-                          "Email unavailable"}
-                      </p>
-                    </div>
-
-                    {/* VENDOR */}
-                    <div className="rounded-xl bg-slate-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Vendor
-                      </p>
-
-                      <p className="mt-2 font-bold text-slate-900">
-                        {order.vendorId?.name ||
-                          "Vendor unavailable"}
-                      </p>
-
-                      <p className="mt-1 text-sm text-slate-500">
-                        {order.vendorId?.email ||
-                          "Email unavailable"}
-                      </p>
-                    </div>
-
-                    {/* STORE */}
-                    <div className="rounded-xl bg-slate-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Store
-                      </p>
-
-                      <p className="mt-2 font-bold text-slate-900">
-                        {order.storeId?.name ||
-                          "Store unavailable"}
-                      </p>
-
-                      <p className="mt-1 text-sm text-slate-500">
-                        {order.storeId?.slug
-                          ? `/${order.storeId.slug}`
-                          : "Slug unavailable"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* SHIPPING */}
-                  <div className="mt-6 rounded-xl border border-indigo-100 bg-indigo-50 p-5">
-                    <h3 className="font-black text-slate-900">
-                      📦 Shipping Address
-                    </h3>
-
-                    {order.shippingAddress ? (
-                      <div className="mt-3 space-y-1 text-sm text-slate-700">
-                        <p className="font-bold">
-                          {
-                            order.shippingAddress
-                              .fullName
-                          }
-                        </p>
-
-                        <p>
-                          📞{" "}
-                          {
-                            order.shippingAddress
-                              .phone
-                          }
-                        </p>
-
-                        <p>
-                          {
-                            order.shippingAddress
-                              .addressLine
-                          }
-                        </p>
-
-                        <p>
-                          {
-                            order.shippingAddress
-                              .city
-                          }
-                          ,{" "}
-                          {
-                            order.shippingAddress
-                              .state
-                          }{" "}
-                          -{" "}
-                          {
-                            order.shippingAddress
-                              .pincode
-                          }
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="mt-3 text-sm text-slate-500">
-                        Shipping details unavailable.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* ITEMS */}
-                  <div className="mt-6">
-                    <h3 className="text-lg font-black">
-                      Items
-                    </h3>
-
-                    <div className="mt-3 space-y-2">
-                      {order.items?.map(
-                        (item, index) => (
-                          <div
-                            key={
-                              item.productId ||
-                              `${order._id}-${index}`
-                            }
-                            className="flex items-center justify-between rounded-xl bg-slate-50 p-4"
-                          >
-                            <div>
-                              <p className="font-semibold">
-                                {item.name}
-                              </p>
-
-                              <p className="mt-1 text-sm text-slate-500">
-                                Quantity:{" "}
-                                {item.quantity}
-                              </p>
-                            </div>
-
-                            <p className="font-bold">
-                              ₹
-                              {(
-                                (item.price || 0) *
-                                (item.quantity || 0)
-                              ).toLocaleString(
-                                "en-IN"
-                              )}
-                            </p>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-xs font-bold text-slate-500 outline-none shadow-sm focus:ring-2 focus:ring-violet-100"
+        >
+          {statusOptions.map((item) => (
+            <option key={item || "ALL"} value={item}>
+              {item || "All Statuses"}
+            </option>
+          ))}
+        </select>
       </div>
-    </main>
-  );
-}
+    </section>
+
+    {/* ERROR */}
+    {error && (
+      <div className="mb-6 rounded-[2rem] border border-rose-200 bg-rose-50/80 p-5 shadow-sm">
+        <p className="font-bold text-rose-600">
+          Failed to load orders
+        </p>
+
+        <p className="mt-1 text-sm text-slate-600">
+          {error}
+        </p>
+      </div>
+    )}
+
+    {/* ORDERS */}
+    {loading ? (
+      <div className="rounded-[2rem] border border-white/60 bg-[#e6ebf5] p-12 text-center shadow-[10px_10px_20px_rgba(163,177,198,0.3),-10px_-10px_20px_rgba(255,255,255,0.9)]">
+        <p className="text-sm font-semibold text-slate-400">
+          Loading orders...
+        </p>
+      </div>
+    ) : filteredOrders.length === 0 ? (
+      <div className="rounded-[2rem] border border-white/60 bg-[#e6ebf5] p-14 text-center shadow-[10px_10px_20px_rgba(163,177,198,0.3),-10px_-10px_20px_rgba(255,255,255,0.9)]">
+        <div className="text-5xl">📦</div>
+
+        <h2 className="mt-4 text-xl font-black text-slate-800">
+          No orders found
+        </h2>
+
+        <p className="mt-2 text-sm text-slate-400">
+          Try changing your search or status filter.
+        </p>
+      </div>
+    ) : (
+      <div className="space-y-6">
+        {filteredOrders.map((order) => (
+          <article
+            key={order._id}
+            className="overflow-hidden rounded-[2rem] border border-white/60 bg-[#e6ebf5] shadow-[10px_10px_20px_rgba(163,177,198,0.3),-10px_-10px_20px_rgba(255,255,255,0.9)]"
+          >
+            {/* ORDER HEADER */}
+            <div className="border-b border-slate-200/60 px-5 py-5 lg:px-6">
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Order ID
+                  </p>
+
+                  <p className="mt-2 font-black text-slate-800">
+                    #{order._id?.slice(-8).toUpperCase()}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    {order.createdAt
+                      ? new Date(order.createdAt).toLocaleString(
+                          "en-IN",
+                          {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          }
+                        )
+                      : "Date unavailable"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Order Status
+                  </p>
+
+                  <span
+                    className={`mt-2 inline-flex rounded-full px-3 py-1.5 text-[9px] font-black tracking-wide ${getStatusStyle(
+                      order.status
+                    )}`}
+                  >
+                    {order.status || "UNKNOWN"}
+                  </span>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Payment
+                  </p>
+
+                  <span
+                    className={`mt-2 inline-flex rounded-full px-3 py-1.5 text-[9px] font-black tracking-wide ${getPaymentStyle(
+                      order.paymentStatus
+                    )}`}
+                  >
+                    {order.paymentStatus || "UNKNOWN"}
+                  </span>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Total
+                  </p>
+
+                  <p className="mt-1 text-2xl font-black text-violet-600">
+                    ₹{Number(order.total || 0).toLocaleString("en-IN")}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* CUSTOMER / VENDOR / STORE */}
+            <div className="grid gap-4 px-5 pt-5 md:grid-cols-3 lg:px-6">
+              {[
+                {
+                  title: "Customer",
+                  name: order.customerId?.name || "Customer unavailable",
+                  sub: order.customerId?.email || "Email unavailable",
+                  icon: "👤",
+                },
+                {
+                  title: "Vendor",
+                  name: order.vendorId?.name || "Vendor unavailable",
+                  sub: order.vendorId?.email || "Email unavailable",
+                  icon: "🏪",
+                },
+                {
+                  title: "Store",
+                  name: order.storeId?.name || "Store unavailable",
+                  sub: order.storeId?.slug
+                    ? `/${order.storeId.slug}`
+                    : "Slug unavailable",
+                  icon: "🏬",
+                },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-2xl bg-white/60 p-4 shadow-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-sm shadow-sm">
+                      {item.icon}
+                    </span>
+
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      {item.title}
+                    </p>
+                  </div>
+
+                  <p className="mt-3 font-bold text-slate-800">
+                    {item.name}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    {item.sub}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* SHIPPING */}
+            <div className="mx-5 mt-5 rounded-2xl border border-violet-100 bg-violet-50/70 p-5 lg:mx-6">
+              <h3 className="font-black text-slate-800">
+                📦 Shipping Address
+              </h3>
+
+              {order.shippingAddress ? (
+                <div className="mt-3 space-y-1 text-sm text-slate-600">
+                  <p className="font-bold">
+                    {order.shippingAddress.fullName}
+                  </p>
+
+                  <p>📞 {order.shippingAddress.phone}</p>
+
+                  <p>{order.shippingAddress.addressLine}</p>
+
+                  <p>
+                    {order.shippingAddress.city},{" "}
+                    {order.shippingAddress.state} -{" "}
+                    {order.shippingAddress.pincode}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-slate-400">
+                  Shipping details unavailable.
+                </p>
+              )}
+            </div>
+
+            {/* ITEMS */}
+            <div className="px-5 py-5 lg:px-6">
+              <h3 className="text-base font-black text-slate-800">
+                Items
+              </h3>
+
+              <div className="mt-3 space-y-2">
+                {order.items?.map((item, index) => (
+                  <div
+                    key={
+                      item.productId ||
+                      `${order._id}-${index}`
+                    }
+                    className="flex items-center justify-between rounded-2xl bg-white/60 p-4 shadow-sm"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-800">
+                        {item.name}
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        Quantity: {item.quantity}
+                      </p>
+                    </div>
+
+                    <p className="font-black text-slate-800">
+                      ₹
+                      {(
+                        (item.price || 0) *
+                        (item.quantity || 0)
+                      ).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    )}
+  </AdminLayout>
+);}
