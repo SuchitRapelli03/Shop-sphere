@@ -4,7 +4,7 @@ import React, {
   useState
 } from "react";
 
-import { Link } from "react-router-dom";
+import AdminLayout from "../components/AdminLayout.jsx";
 import api from "../services/api.js";
 
 export default function AdminStores() {
@@ -117,235 +117,220 @@ export default function AdminStores() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-7xl px-6 py-12">
+  <AdminLayout
+    title="Store Management"
+    subtitle="Monitor and manage all ShopSphere stores"
+    search={search}
+    onSearchChange={setSearch}
+    searchPlaceholder="Search stores..."
+    actions={
+      <button
+        type="button"
+        onClick={loadStores}
+        className="flex items-center gap-2 rounded-2xl bg-white/80 px-3 py-2.5 text-xs font-bold text-slate-500 shadow-[4px_4px_10px_rgba(163,177,198,0.2),-4px_-4px_10px_rgba(255,255,255,0.9)] transition hover:bg-white hover:text-violet-500"
+      >
+        <span className="text-base">↻</span>
+        <span className="hidden sm:inline">Refresh</span>
+      </button>
+    }
+  >
+    {/* PAGE HEADER */}
+    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-500">
+          Marketplace
+        </p>
 
-        {/* Header */}
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <p className="font-semibold text-indigo-600">
-              ShopSphere Admin
-            </p>
+        <h2 className="mt-1 text-2xl font-black text-slate-800 md:text-3xl">
+          Store Management
+        </h2>
 
-            <h1 className="mt-1 text-4xl font-black">
-              Store Management
-            </h1>
+        <p className="mt-2 text-sm text-slate-400">
+          Monitor and manage all stores on ShopSphere.
+        </p>
+      </div>
 
-            <p className="mt-2 text-slate-600">
-              Monitor and manage all stores on ShopSphere.
-            </p>
-          </div>
+      <div className="inline-flex w-fit items-center gap-2 rounded-2xl bg-white/80 px-4 py-2 text-xs font-bold text-slate-600 shadow-[4px_4px_10px_rgba(163,177,198,0.25),-4px_-4px_10px_rgba(255,255,255,0.9)]">
+        <span className="h-2 w-2 rounded-full bg-teal-400" />
+        {stores.length} stores
+      </div>
+    </div>
 
-          <Link
-            to="/admin"
-            className="rounded-xl border bg-white px-5 py-3 font-semibold shadow-sm transition hover:bg-slate-50"
-          >
-            ← Back to Dashboard
-          </Link>
+    {/* FILTERS */}
+    <section className="mb-6 rounded-[2rem] border border-white/60 bg-[#e6ebf5] p-5 shadow-[10px_10px_20px_rgba(163,177,198,0.3),-10px_-10px_20px_rgba(255,255,255,0.9)]">
+      <div className="flex flex-col gap-4 md:flex-row">
+        <div className="flex flex-1 items-center rounded-2xl bg-white/80 px-4 py-3 shadow-sm md:hidden">
+          <span className="mr-2 text-xs text-slate-400">🔎</span>
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search stores..."
+            className="w-full bg-transparent text-xs outline-none placeholder:text-slate-400"
+          />
         </div>
 
-        {/* Filters */}
-        <section className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-              placeholder="Search by store name or slug..."
-              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100"
-            />
-
-            <select
-              value={status}
-              onChange={(e) =>
-                setStatus(e.target.value)
-              }
-              className="rounded-xl border border-slate-200 bg-white p-3 outline-none focus:border-indigo-500"
-            >
-              <option value="">
-                All Statuses
-              </option>
-
-              <option value="ACTIVE">
-                Active
-              </option>
-
-              <option value="SUSPENDED">
-                Suspended
-              </option>
-            </select>
-          </div>
-        </section>
-
-        {/* Error */}
-        {error && (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            {error}
-          </div>
-        )}
-
-        {/* Store table */}
-        <section className="mt-8 overflow-hidden rounded-2xl border bg-white shadow-sm">
-          {loading ? (
-            <div className="p-8 text-center text-slate-500">
-              Loading stores...
-            </div>
-          ) : stores.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">
-              No stores found.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1150px]">
-
-                <thead className="border-b bg-slate-50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-600">
-                      Store
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-600">
-                      Vendor
-                    </th>
-
-                    <th className="px-6 py-4 text-center text-sm font-bold text-slate-600">
-                      Products
-                    </th>
-
-                    <th className="px-6 py-4 text-center text-sm font-bold text-slate-600">
-                      Orders
-                    </th>
-
-                    <th className="px-6 py-4 text-right text-sm font-bold text-slate-600">
-                      Revenue
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-600">
-                      Status
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-600">
-                      Created
-                    </th>
-
-                    <th className="px-6 py-4 text-right text-sm font-bold text-slate-600">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y">
-                  {stores.map((store) => (
-                    <tr
-                      key={store._id}
-                      className="transition hover:bg-slate-50"
-                    >
-                      {/* Store */}
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="font-bold text-slate-900">
-                            {store.name}
-                          </p>
-
-                          <p className="mt-1 text-sm text-slate-500">
-                            /{store.slug}
-                          </p>
-                        </div>
-                      </td>
-
-                      {/* Vendor */}
-                      <td className="px-6 py-4">
-                        {store.vendor ? (
-                          <div>
-                            <p className="font-semibold text-slate-900">
-                              {store.vendor.name}
-                            </p>
-
-                            <p className="text-sm text-slate-500">
-                              {store.vendor.email}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-red-500">
-                            Vendor unavailable
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Products */}
-                      <td className="px-6 py-4 text-center font-bold">
-                        {store.products}
-                      </td>
-
-                      {/* Orders */}
-                      <td className="px-6 py-4 text-center font-bold">
-                        {store.orders}
-                      </td>
-
-                      {/* Revenue */}
-                      <td className="px-6 py-4 text-right font-bold text-green-700">
-                        ₹{store.revenue}
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-6 py-4">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-bold ${getStatusStyle(
-                            store.status
-                          )}`}
-                        >
-                          {store.status}
-                        </span>
-                      </td>
-
-                      {/* Created */}
-                      <td className="px-6 py-4 text-sm text-slate-600">
-                        {store.createdAt
-                          ? new Date(
-                              store.createdAt
-                            ).toLocaleDateString()
-                          : "—"}
-                      </td>
-
-                      {/* Action */}
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          type="button"
-                          disabled={
-                            updatingId === store._id
-                          }
-                          onClick={() =>
-                            handleStatusChange(
-                              store._id,
-                              store.status === "ACTIVE"
-                                ? "SUSPENDED"
-                                : "ACTIVE"
-                            )
-                          }
-                          className={`rounded-lg px-4 py-2 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                            store.status === "ACTIVE"
-                              ? "bg-red-600 hover:bg-red-700"
-                              : "bg-green-600 hover:bg-green-700"
-                          }`}
-                        >
-                          {updatingId === store._id
-                            ? "Updating..."
-                            : store.status === "ACTIVE"
-                            ? "Suspend"
-                            : "Activate"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-
-              </table>
-            </div>
-          )}
-        </section>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-xs font-bold text-slate-500 outline-none shadow-sm"
+        >
+          <option value="">All Statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="SUSPENDED">Suspended</option>
+        </select>
       </div>
-    </main>
-  );
+    </section>
+
+    {/* ERROR */}
+    {error && (
+      <div className="mb-6 rounded-[2rem] border border-rose-200 bg-rose-50/80 p-5 shadow-sm">
+        <p className="font-bold text-rose-600">
+          Store operation failed
+        </p>
+        <p className="mt-1 text-sm text-slate-600">
+          {error}
+        </p>
+      </div>
+    )}
+
+    {/* STORES */}
+    <section className="overflow-hidden rounded-[2rem] border border-white/60 bg-[#e6ebf5] shadow-[10px_10px_20px_rgba(163,177,198,0.3),-10px_-10px_20px_rgba(255,255,255,0.9)]">
+      {loading ? (
+        <div className="p-12 text-center text-sm font-semibold text-slate-400">
+          Loading stores...
+        </div>
+      ) : stores.length === 0 ? (
+        <div className="p-12 text-center">
+          <div className="text-4xl">🏬</div>
+          <p className="mt-3 text-sm font-bold text-slate-500">
+            No stores found.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1150px] text-left text-xs">
+            <thead className="border-b border-slate-200/60 bg-white/40">
+              <tr>
+                {[
+                  "Store",
+                  "Vendor",
+                  "Products",
+                  "Orders",
+                  "Revenue",
+                  "Status",
+                  "Created",
+                  "Action",
+                ].map((heading, index) => (
+                  <th
+                    key={heading}
+                    className={`px-5 py-4 font-black uppercase tracking-wide text-slate-400 ${
+                      index === 2 || index === 3
+                        ? "text-center"
+                        : index === 4 || index === 7
+                        ? "text-right"
+                        : ""
+                    }`}
+                  >
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-slate-200/40">
+              {stores.map((store) => (
+                <tr
+                  key={store._id}
+                  className="transition hover:bg-white/40"
+                >
+                  <td className="px-5 py-4">
+                    <p className="font-bold text-slate-800">
+                      {store.name}
+                    </p>
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      /{store.slug}
+                    </p>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    {store.vendor ? (
+                      <>
+                        <p className="font-semibold text-slate-800">
+                          {store.vendor.name}
+                        </p>
+                        <p className="mt-1 text-[10px] text-slate-400">
+                          {store.vendor.email}
+                        </p>
+                      </>
+                    ) : (
+                      <span className="text-xs text-rose-500">
+                        Vendor unavailable
+                      </span>
+                    )}
+                  </td>
+
+                  <td className="px-5 py-4 text-center font-black text-slate-700">
+                    {store.products}
+                  </td>
+
+                  <td className="px-5 py-4 text-center font-black text-slate-700">
+                    {store.orders}
+                  </td>
+
+                  <td className="px-5 py-4 text-right font-black text-teal-600">
+                    ₹{Number(store.revenue || 0).toLocaleString("en-IN")}
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <span
+                      className={`rounded-full px-3 py-1 text-[9px] font-black tracking-wide ${getStatusStyle(
+                        store.status
+                      )}`}
+                    >
+                      {store.status}
+                    </span>
+                  </td>
+
+                  <td className="px-5 py-4 text-slate-500">
+                    {store.createdAt
+                      ? new Date(store.createdAt).toLocaleDateString()
+                      : "—"}
+                  </td>
+
+                  <td className="px-5 py-4 text-right">
+                    <button
+                      type="button"
+                      disabled={updatingId === store._id}
+                      onClick={() =>
+                        handleStatusChange(
+                          store._id,
+                          store.status === "ACTIVE"
+                            ? "SUSPENDED"
+                            : "ACTIVE"
+                        )
+                      }
+                      className={`rounded-2xl px-4 py-2 text-[10px] font-black text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                        store.status === "ACTIVE"
+                          ? "bg-rose-500 hover:bg-rose-600"
+                          : "bg-emerald-500 hover:bg-emerald-600"
+                      }`}
+                    >
+                      {updatingId === store._id
+                        ? "Updating..."
+                        : store.status === "ACTIVE"
+                        ? "Suspend"
+                        : "Activate"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  </AdminLayout>
+);
 }
