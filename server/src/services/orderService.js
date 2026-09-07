@@ -3,7 +3,7 @@ import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import Store from "../models/Store.js";
 import User from "../models/User.js";
-import { sendOrderEmail } from "../utils/email.js";
+import { sendOrderEmail, sendVendorOrderEmail } from "../utils/email.js";
 
 /*
 =========================================================
@@ -350,15 +350,26 @@ export async function createOrderFromCart({
     Send confirmation email.
     */
 
-    await sendOrderEmail({
-      to: (
-        await User.findById(customerId)
-      )?.email,
+    const customer = await User.findById(customerId);
 
-      orderId: order._id.toString(),
-
-      total,
-    });
+    Promise.allSettled([
+      sendOrderEmail({
+        to: customer?.email,
+        orderId: order._id.toString(),
+        total,
+        items,
+        shippingAddress,
+        customerName: customer?.name || "",
+      }),
+      sendVendorOrderEmail({
+        vendorEmail: vendor.email,
+        vendorName: vendor.name || "",
+        orderId: order._id.toString(),
+        total,
+        items,
+        shippingAddress,
+      }),
+    ]).catch((err) => console.error("ORDER EMAIL ERROR:", err));
 
     return order;
 
@@ -442,15 +453,26 @@ export async function createOrderFromBuyNow({
     Send confirmation email.
     */
 
-    await sendOrderEmail({
-      to: (
-        await User.findById(customerId)
-      )?.email,
+    const customer = await User.findById(customerId);
 
-      orderId: order._id.toString(),
-
-      total,
-    });
+    Promise.allSettled([
+      sendOrderEmail({
+        to: customer?.email,
+        orderId: order._id.toString(),
+        total,
+        items,
+        shippingAddress,
+        customerName: customer?.name || "",
+      }),
+      sendVendorOrderEmail({
+        vendorEmail: vendor.email,
+        vendorName: vendor.name || "",
+        orderId: order._id.toString(),
+        total,
+        items,
+        shippingAddress,
+      }),
+    ]);
 
     return order;
 
