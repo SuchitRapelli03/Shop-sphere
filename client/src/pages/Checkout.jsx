@@ -20,7 +20,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(!isBuyNow);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [error, setError] = useState("");
-
+  const [paymentMethod, setPaymentMethod] = useState("razorpay");
   const [shippingAddress, setShippingAddress] = useState({
     fullName: user?.name || "",
     phone: "",
@@ -421,13 +421,6 @@ export default function Checkout() {
                 );
               }
             }
-
-            alert(
-              verificationResponse.data
-                ?.message ||
-                "Payment successful!"
-            );
-
             navigate(
               "/checkout/success"
             );
@@ -882,42 +875,112 @@ export default function Checkout() {
             </section>
 
             {/* =================================================
-                PAYMENT INFO
+                PAYMENT METHOD
             ================================================= */}
 
             <section className="rounded-[1.75rem] border border-[#ded5ca] bg-[#fffdf9] p-6 shadow-sm sm:p-7">
-              <div className="flex items-start gap-4">
-                <div className="rounded-xl bg-[#f0f7f8] px-3 py-2 text-xl">
-                  🔐
-                </div>
-
+              <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#6a9aa2]">
                     Step 3
                   </p>
 
                   <h2 className="mt-1 text-xl font-black text-[#30251f]">
-                    Secure Payment
+                    Payment Method
                   </h2>
 
-                  <p className="mt-2 text-sm leading-6 text-[#746a62]">
-                    Your payment will be processed securely through Razorpay. ShopSphere does not store your card or payment credentials.
+                  <p className="mt-1 text-sm text-[#746a62]">
+                    Choose how you'd like to pay.
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-[#f0f7f8] px-3 py-2 text-xl">
+                  🔐
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+
+                {/* Razorpay — active */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("razorpay")}
+                  className={`relative flex flex-col gap-2 rounded-2xl border-2 p-4 text-left transition ${
+                    paymentMethod === "razorpay"
+                      ? "border-[#674936] bg-[#fdf6f0]"
+                      : "border-[#ded5ca] bg-[#faf7f1] hover:border-[#c4b5a5]"
+                  }`}
+                >
+                  {paymentMethod === "razorpay" && (
+                    <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#674936] text-[10px] text-white">
+                      ✓
+                    </span>
+                  )}
+
+                  <span className="text-2xl">💳</span>
+
+                  <p className="text-sm font-black text-[#30251f]">
+                    Razorpay
                   </p>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-[#ded5ca] bg-[#faf7f1] px-3 py-1.5 text-[10px] font-black text-[#746a62]">
-                      🔒 Secure
-                    </span>
+                  <p className="text-[11px] font-semibold leading-5 text-[#746a62]">
+                    UPI, cards, net banking, wallets — all supported.
+                  </p>
 
-                    <span className="rounded-full border border-[#ded5ca] bg-[#faf7f1] px-3 py-1.5 text-[10px] font-black text-[#746a62]">
-                      💳 Razorpay
-                    </span>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {["UPI", "Cards", "Net Banking", "Wallets"].map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-[#ede8e0] px-2 py-0.5 text-[9px] font-black text-[#746a62]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </button>
 
-                    <span className="rounded-full border border-[#ded5ca] bg-[#faf7f1] px-3 py-1.5 text-[10px] font-black text-[#746a62]">
-                      🇮🇳 INR
-                    </span>
+                {/* Stripe — coming soon */}
+                <div className="relative flex flex-col gap-2 rounded-2xl border-2 border-dashed border-[#ded5ca] bg-[#faf8f5] p-4 opacity-60">
+                  <span className="absolute right-3 top-3 rounded-full bg-[#e0dbd4] px-2 py-0.5 text-[9px] font-black text-[#746a62]">
+                    Coming Soon
+                  </span>
+
+                  <span className="text-2xl">🌐</span>
+
+                  <p className="text-sm font-black text-[#30251f]">
+                    Stripe
+                  </p>
+
+                  <p className="text-[11px] font-semibold leading-5 text-[#746a62]">
+                    International cards & global payments.
+                  </p>
+
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {["Visa", "Mastercard", "Amex"].map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-[#ede8e0] px-2 py-0.5 text-[9px] font-black text-[#746a62]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Security badges */}
+              <div className="mt-5 flex flex-wrap gap-2">
+                <span className="rounded-full border border-[#ded5ca] bg-[#faf7f1] px-3 py-1.5 text-[10px] font-black text-[#746a62]">
+                  🔒 SSL Encrypted
+                </span>
+
+                <span className="rounded-full border border-[#ded5ca] bg-[#faf7f1] px-3 py-1.5 text-[10px] font-black text-[#746a62]">
+                  🇮🇳 INR Only
+                </span>
+
+                <span className="rounded-full border border-[#ded5ca] bg-[#faf7f1] px-3 py-1.5 text-[10px] font-black text-[#746a62]">
+                  🛡️ PCI Compliant
+                </span>
               </div>
             </section>
           </div>
