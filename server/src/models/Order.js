@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema(
   {
-    customerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    customerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     storeId: { type: mongoose.Schema.Types.ObjectId, ref: "Store", required: true, index: true },
     vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     items: [
@@ -51,4 +51,6 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+orderSchema.index({ customerId: 1, createdAt: -1 });
+orderSchema.index({ vendorId: 1, status: 1 });
 export default mongoose.model("Order", orderSchema);

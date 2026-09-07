@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 
 import { signToken } from "../utils/token.js";
+import { sendWelcomeEmail } from "../utils/email.js";
 
 export async function register(req, res) {
   try {
@@ -90,26 +91,28 @@ export async function register(req, res) {
        RESPONSE
     ========================= */
 
+    /*
+    Send welcome email — non-blocking,
+    don't fail registration if email fails.
+    */
+    sendWelcomeEmail({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    }).catch((err) =>
+      console.error("WELCOME EMAIL ERROR:", err)
+    );
+
     res.status(201).json({
-
       user: {
-
         id: user._id,
-
         name: user.name,
-
         email: user.email,
-
         role: user.role,
-
         status: user.status
-
       },
-
       token: signToken(user)
-
     });
-
   } catch (error) {
 
     console.error(

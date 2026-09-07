@@ -11,9 +11,11 @@ const productSchema = new mongoose.Schema(
     category: { type: String, trim: true,},
     subcategory: { type: String, trim: true,},
     images: [String],
-    active: { type: Boolean, default: true }
+    active: { type: Boolean, default: true, index: true }
   },
   { timestamps: true }
 );
 
+productSchema.index({ storeId: 1, active: 1 });
+productSchema.index({ storeId: 1, category: 1, active: 1 });
 export default mongoose.model("Product", productSchema);
