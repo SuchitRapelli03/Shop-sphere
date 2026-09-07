@@ -33,10 +33,12 @@ const userSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["ACTIVE", "SUSPENDED"],
-      default: "ACTIVE"
+      default: "ACTIVE",
+      index: true
     }
   },
   { timestamps: true }
 );
 
+userSchema.index({ role: 1, status: 1 });
 export default mongoose.model("User", userSchema);
