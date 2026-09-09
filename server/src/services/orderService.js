@@ -3,7 +3,99 @@ import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import Store from "../models/Store.js";
 import User from "../models/User.js";
-import { sendOrderEmail, sendVendorOrderEmail } from "../utils/email.js";
+import {
+  sendOrderEmail,
+  sendVendorOrderEmail,
+} from "../utils/email.js";
+
+/*
+=========================================================
+VARIANT HELPERS
+=========================================================
+*/
+
+function getVariant(product, variantId) {
+  if (!variantId) {
+    return null;
+  }
+
+  return (
+    product.variants?.find(
+      (variant) =>
+        variant._id.toString() ===
+        variantId.toString()
+    ) || null
+  );
+}
+
+function getVariantOptions(variant) {
+  if (!variant?.options) {
+    return undefined;
+  }
+
+  if (variant.options instanceof Map) {
+    return Object.fromEntries(
+      variant.options.entries()
+    );
+  }
+
+  return {
+    ...variant.options,
+  };
+}
+
+function getItemPrice(product, variant) {
+  if (variant) {
+    return Number(variant.price);
+  }
+
+  return Number(product.price);
+}
+
+function getItemStock(product, variant) {
+  if (variant) {
+    return Number(variant.stock || 0);
+  }
+
+  return Number(product.stock || 0);
+}
+
+function buildOrderItem(
+  product,
+  quantity,
+  variant = null
+) {
+  const price =
+    getItemPrice(
+      product,
+      variant
+    );
+
+  return {
+    productId:
+      product._id,
+
+    variantId:
+      variant?._id || null,
+
+    ...(variant
+      ? {
+          variantOptions:
+            getVariantOptions(
+              variant
+            ),
+        }
+      : {}),
+
+    name:
+      product.name,
+
+    quantity,
+
+    price,
+  };
+}
+
 
 /*
 =========================================================
@@ -11,119 +103,285 @@ VALIDATE CART
 =========================================================
 */
 
-export async function validateCart(customerId) {
-  const cart = await Cart.findOne({
-    customerId,
-  }).populate("items.productId");
+/*
+The cart may now contain products from MULTIPLE stores.
 
-  if (!cart || !cart.items.length) {
-    throw new Error("Cart is empty");
-  }
+Validation still happens product-by-product.
 
-  const firstProduct = cart.items[0].productId;
+The returned data contains:
+- every validated item
+- total cart amount
+- store groups
+*/
 
-  if (!firstProduct) {
-    throw new Error(
-      "One or more products are no longer available"
+export async function validateCart(
+  customerId
+) {
+  const cart =
+    await Cart.findOne({
+      customerId,
+    }).populate(
+      "items.productId"
     );
-  }
 
-  const firstStoreId = firstProduct.storeId;
-
-  const store = await Store.findOne({
-    _id: firstStoreId,
-    status: "ACTIVE",
-  });
-
-  if (!store) {
+  if (
+    !cart ||
+    !cart.items.length
+  ) {
     throw new Error(
-      "This store is no longer available"
-    );
-  }
-
-  const vendor = await User.findOne({
-    _id: store.vendorId,
-    role: "VENDOR",
-    status: "ACTIVE",
-  });
-
-  if (!vendor) {
-    throw new Error(
-      "This store is no longer available because its vendor is inactive or deleted."
-    );
-  }
-
-  const mixedStore = cart.items.some((item) => {
-    if (!item.productId) {
-      return true;
-    }
-
-    return (
-      item.productId.storeId.toString() !==
-      firstStoreId.toString()
-    );
-  });
-
-  if (mixedStore) {
-    throw new Error(
-      "This MVP supports one store per order. Split your cart by store."
+      "Cart is empty"
     );
   }
 
   let total = 0;
+
   const items = [];
 
-  for (const item of cart.items) {
-    const product = await Product.findById(
-      item.productId._id
-    );
+  /*
+  Map of:
 
-    if (!product || !product.active) {
+  storeId -> {
+    store,
+    vendor,
+    items,
+    total
+  }
+  */
+
+  const storeGroups =
+    new Map();
+
+  /*
+  -------------------------------------------------------
+  VALIDATE EACH CART ITEM
+  -------------------------------------------------------
+  */
+
+  for (const item of cart.items) {
+    if (!item.productId) {
       throw new Error(
         "One or more products are no longer available"
       );
     }
 
+    const product =
+      await Product.findById(
+        item.productId._id
+      );
+
     if (
-      product.storeId.toString() !==
-      store._id.toString()
+      !product ||
+      !product.active
     ) {
       throw new Error(
-        "Product does not belong to this store"
+        "One or more products are no longer available"
       );
     }
+
+    /*
+    -----------------------------------------------------
+    STORE VALIDATION
+    -----------------------------------------------------
+    */
+
+    const store =
+      await Store.findOne({
+        _id: product.storeId,
+        status: "ACTIVE",
+      });
+
+    if (!store) {
+      throw new Error(
+        `Store for ${product.name} is no longer available`
+      );
+    }
+
+    /*
+    -----------------------------------------------------
+    VENDOR VALIDATION
+    -----------------------------------------------------
+    */
+
+    const vendor =
+      await User.findOne({
+        _id: store.vendorId,
+        role: "VENDOR",
+        status: "ACTIVE",
+      });
+
+    if (!vendor) {
+      throw new Error(
+        `Store for ${product.name} is no longer available because its vendor is inactive or deleted.`
+      );
+    }
+
+    /*
+    Product vendor must match store vendor.
+    */
 
     if (
       product.vendorId.toString() !==
       vendor._id.toString()
     ) {
       throw new Error(
-        "Product vendor is invalid"
+        `Product vendor is invalid for ${product.name}`
       );
     }
 
-    if (product.stock < item.quantity) {
+    /*
+    -----------------------------------------------------
+    VARIANT VALIDATION
+    -----------------------------------------------------
+    */
+
+    let variant = null;
+
+    if (
+      product.variants?.length > 0
+    ) {
+      if (!item.variantId) {
+        throw new Error(
+          `Please select a variant for ${product.name}`
+        );
+      }
+
+      variant =
+        getVariant(
+          product,
+          item.variantId
+        );
+
+      if (!variant) {
+        throw new Error(
+          `Selected variant is no longer available for ${product.name}`
+        );
+      }
+    } else {
+      if (item.variantId) {
+        throw new Error(
+          `Invalid variant selected for ${product.name}`
+        );
+      }
+    }
+
+    /*
+    -----------------------------------------------------
+    STOCK VALIDATION
+    -----------------------------------------------------
+    */
+
+    const availableStock =
+      getItemStock(
+        product,
+        variant
+      );
+
+    if (
+      availableStock <
+      item.quantity
+    ) {
       throw new Error(
-        `Insufficient stock for ${product.name}`
+        `Insufficient stock for ${product.name}${
+          variant
+            ? " for the selected variant"
+            : ""
+        }`
       );
     }
 
-    total += product.price * item.quantity;
+    /*
+    -----------------------------------------------------
+    SERVER-SIDE PRICE
+    -----------------------------------------------------
+    */
 
-    items.push({
-      productId: product._id,
-      name: product.name,
-      quantity: item.quantity,
-      price: product.price,
-    });
+    const price =
+      getItemPrice(
+        product,
+        variant
+      );
+
+    const orderItem =
+      buildOrderItem(
+        product,
+        item.quantity,
+        variant
+      );
+
+    total +=
+      price * item.quantity;
+
+    items.push(
+      orderItem
+    );
+
+    /*
+    -----------------------------------------------------
+    GROUP ITEM BY STORE
+    -----------------------------------------------------
+    */
+
+    const storeKey =
+      store._id.toString();
+
+    if (
+      !storeGroups.has(
+        storeKey
+      )
+    ) {
+      storeGroups.set(
+        storeKey,
+        {
+          store,
+          vendor,
+          items: [],
+          total: 0,
+        }
+      );
+    }
+
+    const group =
+      storeGroups.get(
+        storeKey
+      );
+
+    group.items.push(
+      orderItem
+    );
+
+    group.total +=
+      price * item.quantity;
   }
 
   return {
     cart,
-    store,
-    vendor,
+
+    /*
+    These are kept for compatibility
+    with existing code that may use
+    the first store/vendor.
+    */
+
+    store:
+      storeGroups.values().next()
+        .value?.store || null,
+
+    vendor:
+      storeGroups.values().next()
+        .value?.vendor || null,
+
     items,
+
     total,
+
+    /*
+    New multi-store data.
+    */
+
+    storeGroups:
+      Array.from(
+        storeGroups.values()
+      ),
   };
 }
 
@@ -137,39 +395,115 @@ VALIDATE BUY NOW ITEM
 export async function validateBuyNowItem(
   customerId,
   productId,
-  quantity
+  quantity,
+  variantId = null
 ) {
   if (!productId) {
-    throw new Error("Product is required");
+    throw new Error(
+      "Product is required"
+    );
   }
 
-  const parsedQuantity = Number(quantity);
+  const parsedQuantity =
+    Number(quantity);
 
   if (
-    !Number.isInteger(parsedQuantity) ||
+    !Number.isInteger(
+      parsedQuantity
+    ) ||
     parsedQuantity < 1
   ) {
-    throw new Error("Invalid quantity");
+    throw new Error(
+      "Invalid quantity"
+    );
   }
 
-  const product = await Product.findById(productId);
+  const product =
+    await Product.findById(
+      productId
+    );
 
-  if (!product || !product.active) {
+  if (
+    !product ||
+    !product.active
+  ) {
     throw new Error(
       "This product is no longer available"
     );
   }
 
-  if (product.stock < parsedQuantity) {
+  /*
+  -------------------------------------------------------
+  VARIANT VALIDATION
+  -------------------------------------------------------
+  */
+
+  let variant = null;
+
+  if (
+    product.variants?.length > 0
+  ) {
+    if (!variantId) {
+      throw new Error(
+        "Please select a product variant"
+      );
+    }
+
+    variant =
+      getVariant(
+        product,
+        variantId
+      );
+
+    if (!variant) {
+      throw new Error(
+        "Selected variant not found"
+      );
+    }
+  } else {
+    if (variantId) {
+      throw new Error(
+        "This product does not have variants"
+      );
+    }
+  }
+
+  /*
+  -------------------------------------------------------
+  STOCK VALIDATION
+  -------------------------------------------------------
+  */
+
+  const availableStock =
+    getItemStock(
+      product,
+      variant
+    );
+
+  if (
+    availableStock <
+    parsedQuantity
+  ) {
     throw new Error(
-      `Insufficient stock for ${product.name}`
+      `Insufficient stock for ${product.name}${
+        variant
+          ? " for the selected variant"
+          : ""
+      }`
     );
   }
 
-  const store = await Store.findOne({
-    _id: product.storeId,
-    status: "ACTIVE",
-  });
+  /*
+  -------------------------------------------------------
+  STORE VALIDATION
+  -------------------------------------------------------
+  */
+
+  const store =
+    await Store.findOne({
+      _id: product.storeId,
+      status: "ACTIVE",
+    });
 
   if (!store) {
     throw new Error(
@@ -177,11 +511,18 @@ export async function validateBuyNowItem(
     );
   }
 
-  const vendor = await User.findOne({
-    _id: store.vendorId,
-    role: "VENDOR",
-    status: "ACTIVE",
-  });
+  /*
+  -------------------------------------------------------
+  VENDOR VALIDATION
+  -------------------------------------------------------
+  */
+
+  const vendor =
+    await User.findOne({
+      _id: store.vendorId,
+      role: "VENDOR",
+      status: "ACTIVE",
+    });
 
   if (!vendor) {
     throw new Error(
@@ -198,23 +539,29 @@ export async function validateBuyNowItem(
     );
   }
 
-  const items = [
-    {
-      productId: product._id,
-      name: product.name,
-      quantity: parsedQuantity,
-      price: product.price,
-    },
-  ];
+  /*
+  -------------------------------------------------------
+  SERVER-SIDE PRICE + ORDER ITEM
+  -------------------------------------------------------
+  */
+
+  const item =
+    buildOrderItem(
+      product,
+      parsedQuantity,
+      variant
+    );
 
   const total =
-    product.price * parsedQuantity;
+    item.price *
+    parsedQuantity;
 
   return {
     product,
+    variant,
     store,
     vendor,
-    items,
+    items: [item],
     total,
   };
 }
@@ -226,23 +573,96 @@ ATOMIC STOCK DECREMENT
 =========================================================
 */
 
-export async function reserveStock(items) {
-  const updatedProducts = [];
+export async function reserveStock(
+  items
+) {
+  const updatedStock = [];
 
   try {
     for (const item of items) {
+      /*
+      -----------------------------------------------------
+      VARIANT STOCK
+      -----------------------------------------------------
+      */
+
+      if (item.variantId) {
+        const updatedProduct =
+          await Product.findOneAndUpdate(
+            {
+              _id:
+                item.productId,
+
+              active:
+                true,
+
+              variants: {
+                $elemMatch: {
+                  _id:
+                    item.variantId,
+
+                  stock: {
+                    $gte:
+                      item.quantity,
+                  },
+                },
+              },
+            },
+            {
+              $inc: {
+                "variants.$.stock":
+                  -item.quantity,
+              },
+            },
+            {
+              new: true,
+            }
+          );
+
+        if (!updatedProduct) {
+          throw new Error(
+            `Insufficient stock for ${item.name} for the selected variant`
+          );
+        }
+
+        updatedStock.push({
+          productId:
+            item.productId,
+
+          variantId:
+            item.variantId,
+
+          quantity:
+            item.quantity,
+        });
+
+        continue;
+      }
+
+      /*
+      -----------------------------------------------------
+      NORMAL PRODUCT STOCK
+      -----------------------------------------------------
+      */
+
       const updatedProduct =
         await Product.findOneAndUpdate(
           {
-            _id: item.productId,
-            active: true,
+            _id:
+              item.productId,
+
+            active:
+              true,
+
             stock: {
-              $gte: item.quantity,
+              $gte:
+                item.quantity,
             },
           },
           {
             $inc: {
-              stock: -item.quantity,
+              stock:
+                -item.quantity,
             },
           },
           {
@@ -256,29 +676,29 @@ export async function reserveStock(items) {
         );
       }
 
-      updatedProducts.push({
-        productId: item.productId,
-        quantity: item.quantity,
+      updatedStock.push({
+        productId:
+          item.productId,
+
+        variantId:
+          null,
+
+        quantity:
+          item.quantity,
       });
     }
 
-    return updatedProducts;
+    return updatedStock;
   } catch (error) {
     /*
-    Roll back anything already reserved if a later
-    product fails.
+    -----------------------------------------------------
+    ROLLBACK
+    -----------------------------------------------------
     */
 
-    for (const item of updatedProducts) {
-      await Product.findByIdAndUpdate(
-        item.productId,
-        {
-          $inc: {
-            stock: item.quantity,
-          },
-        }
-      );
-    }
+    await restoreStock(
+      updatedStock
+    );
 
     throw error;
   }
@@ -287,11 +707,65 @@ export async function reserveStock(items) {
 
 /*
 =========================================================
-CREATE ORDER FROM CART
+RESTORE STOCK
 =========================================================
 */
 
-export async function createOrderFromCart({
+async function restoreStock(
+  items
+) {
+  for (const item of items) {
+    if (item.variantId) {
+      await Product.findOneAndUpdate(
+        {
+          _id:
+            item.productId,
+
+          "variants._id":
+            item.variantId,
+        },
+        {
+          $inc: {
+            "variants.$.stock":
+              item.quantity,
+          },
+        }
+      );
+    } else {
+      await Product.findByIdAndUpdate(
+        item.productId,
+        {
+          $inc: {
+            stock:
+              item.quantity,
+          },
+        }
+      );
+    }
+  }
+}
+
+
+/*
+=========================================================
+CREATE ORDERS FROM CART
+=========================================================
+*/
+
+/*
+One payment can now produce multiple orders.
+
+Example:
+
+Store A → Order A
+Store B → Order B
+Store C → Order C
+
+All orders share the same Razorpay
+payment/order identifiers.
+*/
+
+export async function createOrdersFromCart({
   customerId,
   shippingAddress,
   paymentStatus = "PENDING",
@@ -301,45 +775,77 @@ export async function createOrderFromCart({
 }) {
   const {
     cart,
-    store,
-    vendor,
-    items,
-    total,
-  } = await validateCart(customerId);
+    storeGroups,
+  } =
+    await validateCart(
+      customerId
+    );
+
+  const allItems =
+    storeGroups.flatMap(
+      (group) =>
+        group.items
+    );
 
   /*
-  Reserve stock atomically.
+  -------------------------------------------------------
+  RESERVE ALL STOCK FIRST
+  -------------------------------------------------------
   */
 
-  await reserveStock(items);
+  await reserveStock(
+    allItems
+  );
+
+  const createdOrders = [];
 
   try {
-    const order = await Order.create({
-      customerId,
+    /*
+    -----------------------------------------------------
+    CREATE ONE ORDER PER STORE
+    -----------------------------------------------------
+    */
 
-      storeId: store._id,
+    for (const group of storeGroups) {
+      const order =
+        await Order.create({
+          customerId,
 
-      vendorId: vendor._id,
+          storeId:
+            group.store._id,
 
-      items,
+          vendorId:
+            group.vendor._id,
 
-      total,
+          items:
+            group.items,
 
-      shippingAddress,
+          total:
+            group.total,
 
-      paymentStatus,
+          shippingAddress,
 
-      status: "PLACED",
+          paymentStatus,
 
-      razorpayOrderId,
+          status:
+            "PLACED",
 
-      razorpayPaymentId,
+          razorpayOrderId,
 
-      stripeSessionId,
-    });
+          razorpayPaymentId,
+
+          stripeSessionId,
+        });
+
+      createdOrders.push(
+        order
+      );
+    }
 
     /*
-    Clear cart only after order creation succeeds.
+    -----------------------------------------------------
+    CLEAR CART ONLY AFTER ALL ORDERS ARE CREATED
+    -----------------------------------------------------
     */
 
     cart.items = [];
@@ -347,50 +853,150 @@ export async function createOrderFromCart({
     await cart.save();
 
     /*
-    Send confirmation email.
+    -----------------------------------------------------
+    SEND EMAILS
+    -----------------------------------------------------
     */
 
-    const customer = await User.findById(customerId);
+    const customer =
+      await User.findById(
+        customerId
+      );
 
-    Promise.allSettled([
-      sendOrderEmail({
-        to: customer?.email,
-        orderId: order._id.toString(),
-        total,
-        items,
-        shippingAddress,
-        customerName: customer?.name || "",
-      }),
-      sendVendorOrderEmail({
-        vendorEmail: vendor.email,
-        vendorName: vendor.name || "",
-        orderId: order._id.toString(),
-        total,
-        items,
-        shippingAddress,
-      }),
-    ]).catch((err) => console.error("ORDER EMAIL ERROR:", err));
+    for (
+      const order of createdOrders
+    ) {
+      const group =
+        storeGroups.find(
+          (entry) =>
+            entry.store._id
+              .toString() ===
+            order.storeId.toString()
+        );
 
-    return order;
+      Promise.allSettled([
+        sendOrderEmail({
+          to:
+            customer?.email,
 
-  } catch (error) {
-    /*
-    Order creation failed, so restore stock.
-    */
+          orderId:
+            order._id.toString(),
 
-    for (const item of items) {
-      await Product.findByIdAndUpdate(
-        item.productId,
-        {
-          $inc: {
-            stock: item.quantity,
-          },
-        }
+          total:
+            order.total,
+
+          items:
+            order.items,
+
+          shippingAddress,
+
+          customerName:
+            customer?.name ||
+            "",
+        }),
+
+        sendVendorOrderEmail({
+          vendorEmail:
+            group?.vendor?.email,
+
+          vendorName:
+            group?.vendor?.name ||
+            "",
+
+          orderId:
+            order._id.toString(),
+
+          total:
+            order.total,
+
+          items:
+            order.items,
+
+          shippingAddress,
+        }),
+      ]).catch((err) =>
+        console.error(
+          "ORDER EMAIL ERROR:",
+          err
+        )
       );
     }
 
+    return {
+      orders:
+        createdOrders,
+
+      total:
+        createdOrders.reduce(
+          (sum, order) =>
+            sum + order.total,
+          0
+        ),
+    };
+  } catch (error) {
+    /*
+    -----------------------------------------------------
+    IF ORDER CREATION FAILS
+    -----------------------------------------------------
+    */
+
+    /*
+    Remove any orders that were already
+    created during this attempt.
+    */
+
+    if (
+      createdOrders.length
+    ) {
+      await Order.deleteMany({
+        _id: {
+          $in:
+            createdOrders.map(
+              (order) =>
+                order._id
+            ),
+        },
+      });
+    }
+
+    await restoreStock(
+      allItems
+    );
+
     throw error;
   }
+}
+
+
+/*
+=========================================================
+BACKWARD-COMPATIBLE CREATE ORDER FROM CART
+=========================================================
+*/
+
+/*
+Existing code such as older Stripe logic may
+still import createOrderFromCart.
+
+It now returns the first order when the cart
+contains multiple stores.
+
+New multi-store payment code should use
+createOrdersFromCart().
+*/
+
+export async function createOrderFromCart(
+  options
+) {
+  const result =
+    await createOrdersFromCart(
+      options
+    );
+
+  return (
+    result.orders[0] ||
+    null
+  );
 }
 
 
@@ -404,6 +1010,7 @@ export async function createOrderFromBuyNow({
   customerId,
   productId,
   quantity,
+  variantId = null,
   shippingAddress,
   paymentStatus = "PENDING",
   razorpayOrderId,
@@ -414,83 +1021,116 @@ export async function createOrderFromBuyNow({
     vendor,
     items,
     total,
-  } = await validateBuyNowItem(
-    customerId,
-    productId,
-    quantity
-  );
+  } =
+    await validateBuyNowItem(
+      customerId,
+      productId,
+      quantity,
+      variantId
+    );
 
   /*
-  Reserve stock atomically.
+  -------------------------------------------------------
+  RESERVE STOCK
+  -------------------------------------------------------
   */
 
-  await reserveStock(items);
+  await reserveStock(
+    items
+  );
 
   try {
-    const order = await Order.create({
-      customerId,
+    const order =
+      await Order.create({
+        customerId,
 
-      storeId: store._id,
+        storeId:
+          store._id,
 
-      vendorId: vendor._id,
+        vendorId:
+          vendor._id,
 
-      items,
+        items,
 
-      total,
+        total,
 
-      shippingAddress,
+        shippingAddress,
 
-      paymentStatus,
+        paymentStatus,
 
-      status: "PLACED",
+        status:
+          "PLACED",
 
-      razorpayOrderId,
+        razorpayOrderId,
 
-      razorpayPaymentId,
-    });
+        razorpayPaymentId,
+      });
 
     /*
-    Send confirmation email.
+    -----------------------------------------------------
+    SEND EMAILS
+    -----------------------------------------------------
     */
 
-    const customer = await User.findById(customerId);
+    const customer =
+      await User.findById(
+        customerId
+      );
 
     Promise.allSettled([
       sendOrderEmail({
-        to: customer?.email,
-        orderId: order._id.toString(),
+        to:
+          customer?.email,
+
+        orderId:
+          order._id.toString(),
+
         total,
+
         items,
+
         shippingAddress,
-        customerName: customer?.name || "",
+
+        customerName:
+          customer?.name ||
+          "",
       }),
+
       sendVendorOrderEmail({
-        vendorEmail: vendor.email,
-        vendorName: vendor.name || "",
-        orderId: order._id.toString(),
+        vendorEmail:
+          vendor.email,
+
+        vendorName:
+          vendor.name ||
+          "",
+
+        orderId:
+          order._id.toString(),
+
         total,
+
         items,
+
         shippingAddress,
       }),
-    ]);
+    ]).catch((err) =>
+      console.error(
+        "ORDER EMAIL ERROR:",
+        err
+      )
+    );
 
     return order;
-
   } catch (error) {
     /*
-    Order creation failed, so restore stock.
+    -----------------------------------------------------
+    ORDER CREATION FAILED
+    -----------------------------------------------------
     */
 
-    for (const item of items) {
-      await Product.findByIdAndUpdate(
-        item.productId,
-        {
-          $inc: {
-            stock: item.quantity,
-          },
-        }
-      );
-    }
+    await restoreStock(
+      items
+    );
 
     throw error;
   }

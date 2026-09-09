@@ -113,14 +113,28 @@ export async function updateOrderStatus(req, res) {
       order.status !== "CANCELLED"
     ) {
       for (const item of order.items) {
-        await Product.findByIdAndUpdate(
-          item.productId,
-          {
-            $inc: {
-              stock: item.quantity,
+        if (item.variantId) {
+          await Product.findOneAndUpdate(
+            {
+              _id: item.productId,
+              "variants._id": item.variantId,
             },
-          }
-        );
+            {
+              $inc: {
+                "variants.$.stock": item.quantity,
+              },
+            }
+          );
+        } else {
+          await Product.findByIdAndUpdate(
+            item.productId,
+            {
+              $inc: {
+                stock: item.quantity,
+              },
+            }
+          );
+        }
       }
     }
 
@@ -169,14 +183,28 @@ export async function cancelOrder(req, res) {
     }
 
     for (const item of order.items) {
-      await Product.findByIdAndUpdate(
-        item.productId,
-        {
-          $inc: {
-            stock: item.quantity,
+      if (item.variantId) {
+        await Product.findOneAndUpdate(
+          {
+            _id: item.productId,
+            "variants._id": item.variantId,
           },
-        }
-      );
+          {
+            $inc: {
+              "variants.$.stock": item.quantity,
+            },
+          }
+        );
+      } else {
+        await Product.findByIdAndUpdate(
+          item.productId,
+          {
+            $inc: {
+              stock: item.quantity,
+            },
+          }
+        );
+      }
     }
 
     order.status = "CANCELLED";
