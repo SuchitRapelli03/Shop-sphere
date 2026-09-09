@@ -36,7 +36,9 @@ export default function VendorDashboard() {
     price: 0,
     stock: 0,
     category: "",
+    subcategory: "",
     images: [],
+    variants: [],
   });
 
   const [editingStoreId, setEditingStoreId] = useState(null);
@@ -57,7 +59,9 @@ export default function VendorDashboard() {
     price: 0,
     stock: 0,
     category: "",
+    subcategory: "",
     images: [],
+    variants: [],
   });
 
   const [loading, setLoading] = useState(true);
@@ -135,6 +139,30 @@ export default function VendorDashboard() {
     return response.data.url;
   }
 
+  async function uploadProductImages(files) {
+  if (!files || files.length === 0) return [];
+
+  const uploadedUrls = [];
+
+  for (const file of files) {
+    const reader = new FileReader();
+
+    const base64 = await new Promise((resolve, reject) => {
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const response = await api.post("/uploads/image", {
+      image: base64,
+    });
+
+    uploadedUrls.push(response.data.url);
+  }
+
+  return uploadedUrls;
+}
+
   async function createStore(e) {
     e.preventDefault();
 
@@ -144,7 +172,7 @@ export default function VendorDashboard() {
     }
 
     try {
-            let logoUrl = "";
+      let logoUrl = "";
       let bannerUrl = "";
 
       if (store.logo) {
@@ -213,55 +241,53 @@ export default function VendorDashboard() {
     });
   }
 
- async function updateStore(e) {
-  e.preventDefault();
+  async function updateStore(e) {
+    e.preventDefault();
 
-  if (!editingStoreId) return;
+    if (!editingStoreId) return;
 
-  if (
-    !editStore.name.trim() ||
-    !editStore.slug.trim()
-  ) {
-    alert("Store name and slug are required.");
-    return;
-  }
-
-  try {
-    let logoUrl = editStore.logo;
-    let bannerUrl = editStore.banner;
-
-    // Upload new logo only if a new file was selected
-    if (editStore.logo instanceof File) {
-      logoUrl = await uploadStoreImage(editStore.logo);
+    if (
+      !editStore.name.trim() ||
+      !editStore.slug.trim()
+    ) {
+      alert("Store name and slug are required.");
+      return;
     }
 
-    // Upload new banner only if a new file was selected
-    if (editStore.banner instanceof File) {
-      bannerUrl = await uploadStoreImage(editStore.banner);
+    try {
+      let logoUrl = editStore.logo;
+      let bannerUrl = editStore.banner;
+
+      if (editStore.logo instanceof File) {
+        logoUrl = await uploadStoreImage(editStore.logo);
+      }
+
+      if (editStore.banner instanceof File) {
+        bannerUrl = await uploadStoreImage(editStore.banner);
+      }
+
+      await api.put(`/stores/${editingStoreId}`, {
+        name: editStore.name.trim(),
+        slug: editStore.slug.trim().toLowerCase(),
+        description: editStore.description.trim(),
+        logo: logoUrl,
+        banner: bannerUrl,
+      });
+
+      alert("Store updated successfully!");
+
+      cancelEditingStore();
+
+      await loadDashboard();
+    } catch (err) {
+      console.error("UPDATE STORE ERROR:", err);
+
+      alert(
+        err.response?.data?.message ||
+          "Unable to update store"
+      );
     }
-
-    await api.put(`/stores/${editingStoreId}`, {
-      name: editStore.name.trim(),
-      slug: editStore.slug.trim().toLowerCase(),
-      description: editStore.description.trim(),
-      logo: logoUrl,
-      banner: bannerUrl,
-    });
-
-    alert("Store updated successfully!");
-
-    cancelEditingStore();
-
-    await loadDashboard();
-  } catch (err) {
-    console.error("UPDATE STORE ERROR:", err);
-
-    alert(
-      err.response?.data?.message ||
-        "Unable to update store"
-    );
   }
-}
 
   async function deleteStore(storeId) {
     const confirmed = window.confirm(
@@ -287,23 +313,323 @@ export default function VendorDashboard() {
   }
 
   // =========================================================
+  // PRODUCT VARIANT HELPERS
+  // =========================================================
+
+  function createEmptyVariant() {
+    return {
+      options: {
+        color: "",
+        size: "",
+      },
+      price: 0,
+      stock: 0,
+    };
+  }
+
+  function addProductVariant(isEditing = false) {
+    if (isEditing) {
+      setEditProduct((current) => ({
+        ...current,
+        variants: [
+          ...(current.variants || []),
+          createEmptyVariant(),
+        ],
+      }));
+    } else {
+      setProduct((current) => ({
+        ...current,
+        variants: [
+          ...(current.variants || []),
+          createEmptyVariant(),
+        ],
+      }));
+    }
+  }
+
+  function removeProductVariant(
+    variantIndex,
+    isEditing = false
+  ) {
+    if (isEditing) {
+      setEditProduct((current) => ({
+        ...current,
+        variants: (current.variants || []).filter(
+          (_, index) => index !== variantIndex
+        ),
+      }));
+    } else {
+      setProduct((current) => ({
+        ...current,
+        variants: (current.variants || []).filter(
+          (_, index) => index !== variantIndex
+        ),
+      }));
+    }
+  }
+
+  function updateVariantField(
+    variantIndex,
+    field,
+    value,
+    isEditing = false
+  ) {
+    const updateVariants = (current) => ({
+      ...current,
+      variants: (current.variants || []).map(
+        (variant, index) =>
+          index === variantIndex
+            ? {
+                ...variant,
+                [field]: value,
+              }
+            : variant
+      ),
+    });
+
+    if (isEditing) {
+      setEditProduct(updateVariants);
+    } else {
+      setProduct(updateVariants);
+    }
+  }
+
+  function updateVariantOption(
+    variantIndex,
+    optionKey,
+    value,
+    isEditing = false
+  ) {
+    const updateVariants = (current) => ({
+      ...current,
+      variants: (current.variants || []).map(
+        (variant, index) =>
+          index === variantIndex
+            ? {
+                ...variant,
+                options: {
+                  ...variant.options,
+                  [optionKey]: value,
+                },
+              }
+            : variant
+      ),
+    });
+
+    if (isEditing) {
+      setEditProduct(updateVariants);
+    } else {
+      setProduct(updateVariants);
+    }
+  }
+
+  function addVariantOption(
+    variantIndex,
+    isEditing = false
+  ) {
+    const updateVariants = (current) => ({
+      ...current,
+      variants: (current.variants || []).map(
+        (variant, index) =>
+          index === variantIndex
+            ? {
+                ...variant,
+                options: {
+                  ...variant.options,
+                  [`option${Object.keys(
+                    variant.options || {}
+                  ).length + 1}`]: "",
+                },
+              }
+            : variant
+      ),
+    });
+
+    if (isEditing) {
+      setEditProduct(updateVariants);
+    } else {
+      setProduct(updateVariants);
+    }
+  }
+
+  function removeVariantOption(
+    variantIndex,
+    optionKey,
+    isEditing = false
+  ) {
+    const updateVariants = (current) => ({
+      ...current,
+      variants: (current.variants || []).map(
+        (variant, index) => {
+          if (index !== variantIndex) {
+            return variant;
+          }
+
+          const updatedOptions = {
+            ...variant.options,
+          };
+
+          delete updatedOptions[optionKey];
+
+          return {
+            ...variant,
+            options: updatedOptions,
+          };
+        }
+      ),
+    });
+
+    if (isEditing) {
+      setEditProduct(updateVariants);
+    } else {
+      setProduct(updateVariants);
+    }
+  }
+
+  function validateProductVariants(variants) {
+    if (!Array.isArray(variants) || variants.length === 0) {
+      return true;
+    }
+
+    const combinationKeys = new Set();
+
+    for (const variant of variants) {
+      const validOptions = Object.entries(
+        variant.options || {}
+      ).filter(
+        ([key, value]) =>
+          String(key).trim() &&
+          String(value).trim()
+      );
+
+      if (validOptions.length === 0) {
+        alert(
+          "Each variant must have at least one option."
+        );
+        return false;
+      }
+
+      const numericPrice = Number(variant.price);
+
+      if (
+        Number.isNaN(numericPrice) ||
+        numericPrice < 0
+      ) {
+        alert(
+          "Variant price must be a valid non-negative number."
+        );
+        return false;
+      }
+
+      const numericStock = Number(variant.stock);
+
+      if (
+        Number.isNaN(numericStock) ||
+        numericStock < 0 ||
+        !Number.isInteger(numericStock)
+      ) {
+        alert(
+          "Variant stock must be a non-negative integer."
+        );
+        return false;
+      }
+
+      const normalizedOptions = validOptions
+        .map(([key, value]) => [
+          String(key).trim().toLowerCase(),
+          String(value).trim(),
+        ])
+        .sort(([keyA], [keyB]) =>
+          keyA.localeCompare(keyB)
+        );
+
+      const combinationKey = normalizedOptions
+        .map(([key, value]) => `${key}:${value}`)
+        .join("|");
+
+      if (combinationKeys.has(combinationKey)) {
+        alert(
+          "Duplicate variant option combinations are not allowed."
+        );
+        return false;
+      }
+
+      combinationKeys.add(combinationKey);
+    }
+
+    return true;
+  }
+
+  function getVariantTotalStock(currentProduct) {
+    if (
+      !Array.isArray(currentProduct.variants) ||
+      currentProduct.variants.length === 0
+    ) {
+      return Number(currentProduct.stock || 0);
+    }
+
+    return currentProduct.variants.reduce(
+      (total, variant) =>
+        total + Number(variant.stock || 0),
+      0
+    );
+  }
+
+  function getVariantPriceLabel(currentProduct) {
+    if (
+      !Array.isArray(currentProduct.variants) ||
+      currentProduct.variants.length === 0
+    ) {
+      return formatCurrency(currentProduct.price);
+    }
+
+    const prices = currentProduct.variants
+      .map((variant) => Number(variant.price))
+      .filter((price) => Number.isFinite(price));
+
+    if (prices.length === 0) {
+      return formatCurrency(currentProduct.price);
+    }
+
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+
+    if (min === max) {
+      return formatCurrency(min);
+    }
+
+    return `${formatCurrency(min)} - ${formatCurrency(max)}`;
+  }
+
+  // =========================================================
   // PRODUCT CRUD
   // =========================================================
 
   function startEditingProduct(currentProduct) {
-    setEditingProductId(currentProduct._id);
+  setEditingProductId(currentProduct._id);
 
-    setEditProduct({
-      name: currentProduct.name || "",
-      description: currentProduct.description || "",
-      price: currentProduct.price ?? 0,
-      stock: currentProduct.stock ?? 0,
-      category: currentProduct.category || "",
-      images: Array.isArray(currentProduct.images)
-        ? currentProduct.images
-        : [],
-    });
-  }
+  setEditProduct({
+    name: currentProduct.name || "",
+    description: currentProduct.description || "",
+    price: currentProduct.price ?? 0,
+    stock: currentProduct.stock ?? 0,
+    category: currentProduct.category || "",
+    subcategory: currentProduct.subcategory || "",
+    images: Array.isArray(currentProduct.images)
+      ? currentProduct.images
+      : [],
+    variants: Array.isArray(currentProduct.variants)
+      ? currentProduct.variants.map((variant) => ({
+          _id: variant._id,
+          options: Object.fromEntries(
+            Object.entries(variant.options || {})
+          ),
+          price: variant.price ?? 0,
+          stock: variant.stock ?? 0,
+        }))
+      : [],
+  });
+}
 
   function cancelEditingProduct() {
     setEditingProductId(null);
@@ -314,7 +640,9 @@ export default function VendorDashboard() {
       price: 0,
       stock: 0,
       category: "",
+      subcategory: "",
       images: [],
+      variants: [],
     });
   }
 
@@ -336,14 +664,56 @@ export default function VendorDashboard() {
       return;
     }
 
+    if (
+      !validateProductVariants(
+        editProduct.variants
+      )
+    ) {
+      return;
+    }
+
     try {
+      const imageFiles = editProduct.images.filter(
+        (image) => image instanceof File
+      );
+
+      const existingImageUrls =
+        editProduct.images.filter(
+          (image) => typeof image === "string"
+        );
+
+      const uploadedImages =
+        await uploadProductImages(imageFiles);
+
       await api.put(`/products/${editingProductId}`, {
         name: editProduct.name.trim(),
         description: editProduct.description.trim(),
         price: Number(editProduct.price),
         stock: Number(editProduct.stock),
         category: editProduct.category.trim(),
-        images: editProduct.images,
+        subcategory: editProduct.subcategory.trim(),
+        images: [
+          ...existingImageUrls,
+          ...uploadedImages,
+        ],
+        variants: editProduct.variants.map(
+          (variant) => ({
+            ...(variant._id
+              ? { _id: variant._id }
+              : {}),
+            options: Object.fromEntries(
+              Object.entries(
+                variant.options || {}
+              ).filter(
+                ([key, value]) =>
+                  String(key).trim() &&
+                  String(value).trim()
+              )
+            ),
+            price: Number(variant.price),
+            stock: Number(variant.stock),
+          })
+        ),
       });
 
       alert("Product updated successfully!");
@@ -369,40 +739,86 @@ export default function VendorDashboard() {
       return;
     }
 
-    if (!product.name) {
+    if (!product.name.trim()) {
       alert("Please enter product name.");
       return;
     }
 
-    try {
-      await api.post("/products", {
-        ...product,
-        price: Number(product.price),
-        stock: Number(product.stock),
-      });
-
-      alert("Product created successfully!");
-
-      setProduct((current) => ({
-        ...current,
-        name: "",
-        description: "",
-        price: 0,
-        stock: 0,
-        category: "",
-        images: [],
-      }));
-
-      await loadDashboard();
-    } catch (err) {
-      console.error("CREATE PRODUCT ERROR:", err);
-
-      alert(
-        err.response?.data?.message ||
-          "Unable to create product"
-      );
+    if (
+      Number(product.price) < 0 ||
+      Number(product.stock) < 0
+    ) {
+      alert("Price and stock cannot be negative.");
+      return;
     }
+
+    if (
+      !validateProductVariants(product.variants)
+    ) {
+      return;
+    }
+
+   try {
+    const imageFiles = product.images.filter(
+      (image) => image instanceof File
+    );
+
+    const imageUrls = product.images.filter(
+      (image) => typeof image === "string"
+    );
+
+    const uploadedImages =
+      await uploadProductImages(imageFiles);
+
+    await api.post("/products", {
+      ...product,
+      price: Number(product.price),
+      stock: Number(product.stock),
+      images: [
+        ...imageUrls,
+        ...uploadedImages,
+      ],
+      variants: product.variants.map(
+        (variant) => ({
+          options: Object.fromEntries(
+            Object.entries(
+              variant.options || {}
+            ).filter(
+              ([key, value]) =>
+                String(key).trim() &&
+                String(value).trim()
+            )
+          ),
+          price: Number(variant.price),
+          stock: Number(variant.stock),
+        })
+      ),
+    });
+
+    alert("Product created successfully!");
+
+    setProduct((current) => ({
+      ...current,
+      name: "",
+      description: "",
+      price: 0,
+      stock: 0,
+      category: "",
+      subcategory: "",
+      images: [],
+      variants: [],
+    }));
+
+    await loadDashboard();
+  } catch (err) {
+    console.error("CREATE PRODUCT ERROR:", err);
+
+    alert(
+      err.response?.data?.message ||
+        "Unable to create product"
+    );
   }
+}
 
   async function deleteProduct(productId) {
     const confirmed = window.confirm(
@@ -525,8 +941,6 @@ export default function VendorDashboard() {
 
       {/* =====================================================
           SIDEBAR
-          Starts BELOW the global Navbar.jsx
-          Global navbar remains full width above it.
       ===================================================== */}
 
       <aside
@@ -536,8 +950,6 @@ export default function VendorDashboard() {
             : "w-0 overflow-hidden"
         }`}
       >
-
-        {/* Logo */}
 
         <div className="flex h-[68px] shrink-0 items-center gap-3 border-b border-white/10 px-5">
 
@@ -565,8 +977,6 @@ export default function VendorDashboard() {
           </div>
 
         </div>
-
-        {/* Navigation */}
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
 
@@ -631,8 +1041,6 @@ export default function VendorDashboard() {
 
         </nav>
 
-        {/* Account */}
-
         <div className="border-t border-white/10 p-3">
 
           <div className="flex items-center gap-3 rounded-xl bg-white/5 p-2.5">
@@ -663,19 +1071,11 @@ export default function VendorDashboard() {
           MAIN AREA
       ===================================================== */}
 
-       <main className="min-h-screen flex-1 min-w-0">
-
-        {/* ===================================================
-            DASHBOARD HEADER
-            This is NOT the global Navbar.jsx.
-            It lives inside the dashboard content area.
-        =================================================== */}
+      <main className="min-h-screen flex-1 min-w-0">
 
         <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-[#ded6c9] bg-[#fbfaf6]/95 px-5 backdrop-blur-md lg:px-6">
 
           <div className="flex min-w-0 items-center gap-3">
-
-            {/* Sidebar Toggle */}
 
             <button
               onClick={() =>
@@ -760,10 +1160,6 @@ export default function VendorDashboard() {
 
         </header>
 
-        {/* ===================================================
-            PAGE CONTENT
-        =================================================== */}
-
         <div className="p-5 lg:p-6">
 
           {/* =================================================
@@ -772,8 +1168,6 @@ export default function VendorDashboard() {
 
           {activeTab === "overview" && (
             <>
-
-              {/* Metric Cards */}
 
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
@@ -837,11 +1231,7 @@ export default function VendorDashboard() {
 
               </div>
 
-              {/* Chart + Status */}
-
               <div className="mt-5 grid gap-5 lg:grid-cols-3">
-
-                {/* Revenue Chart */}
 
                 <div className="rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm lg:col-span-2">
 
@@ -965,8 +1355,6 @@ export default function VendorDashboard() {
 
                 </div>
 
-                {/* Order Status */}
-
                 <div className="grid grid-cols-3 gap-3 lg:grid-cols-1">
 
                   <div className="rounded-xl border border-[#ded6c9] bg-white p-4 shadow-sm">
@@ -995,7 +1383,7 @@ export default function VendorDashboard() {
 
                   <div className="rounded-xl border border-[#ded6c9] bg-white p-4 shadow-sm">
 
-                    <p className="text-xs font-medium text-[#81786d]">
+                    <p className="text-xs font-medium text-[#8178686d]">
                       Cancelled
                     </p>
 
@@ -1008,8 +1396,6 @@ export default function VendorDashboard() {
                 </div>
 
               </div>
-
-              {/* Recent Orders */}
 
               <div className="mt-5 overflow-hidden rounded-xl border border-[#ded6c9] bg-white shadow-sm">
 
@@ -1204,8 +1590,6 @@ export default function VendorDashboard() {
                     className="rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm"
                   >
 
-                    {/* Order Header */}
-
                     <div className="flex flex-col gap-3 border-b border-[#eee8de] pb-4 md:flex-row md:items-center md:justify-between">
 
                       <div>
@@ -1276,8 +1660,6 @@ export default function VendorDashboard() {
 
                     </div>
 
-                    {/* Shipping */}
-
                     {order.shippingAddress && (
 
                       <div className="mt-4 rounded-lg bg-[#f8f4ec] p-3">
@@ -1327,8 +1709,6 @@ export default function VendorDashboard() {
 
                     )}
 
-                    {/* Items */}
-
                     <div className="mt-4 space-y-1.5">
 
                       {order.items?.map(
@@ -1372,8 +1752,6 @@ export default function VendorDashboard() {
 
                     </div>
 
-                    {/* Total */}
-
                     <div className="mt-4 flex items-center justify-between border-t border-[#eee8de] pt-4">
 
                       <span className="text-sm font-bold text-[#3f382f]">
@@ -1387,8 +1765,6 @@ export default function VendorDashboard() {
                       </span>
 
                     </div>
-
-                    {/* Status */}
 
                     <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 
@@ -1487,248 +1863,673 @@ export default function VendorDashboard() {
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
 
                   {products.map(
-                    (currentProduct) => (
+                    (currentProduct) => {
 
-                      <div
-                        key={currentProduct._id}
-                        className="rounded-xl border border-[#ded6c9] bg-white p-4 shadow-sm transition hover:shadow-md"
-                      >
+                      const totalVariantStock =
+                        getVariantTotalStock(
+                          currentProduct
+                        );
 
-                        {editingProductId ===
-                        currentProduct._id ? (
+                      const hasVariants =
+                        Array.isArray(
+                          currentProduct.variants
+                        ) &&
+                        currentProduct.variants.length >
+                          0;
 
-                          <form
-                            onSubmit={
-                              updateProduct
-                            }
-                            className="space-y-2.5"
-                          >
+                      return (
+                        <div
+                          key={currentProduct._id}
+                          className="rounded-xl border border-[#ded6c9] bg-white p-4 shadow-sm transition hover:shadow-md"
+                        >
 
-                            <h3 className="text-sm font-bold text-[#3f382f]">
-                              Edit Product
-                            </h3>
+                          {editingProductId ===
+                          currentProduct._id ? (
 
-                            <input
-                              className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
-                              placeholder="Product name"
-                              value={
-                                editProduct.name
+                            <form
+                              onSubmit={
+                                updateProduct
                               }
-                              onChange={(e) =>
-                                setEditProduct({
-                                  ...editProduct,
-                                  name: e.target
-                                    .value,
-                                })
-                              }
-                            />
+                              className="space-y-3"
+                            >
 
-                            <textarea
-                              className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
-                              placeholder="Description"
-                              rows="2"
-                              value={
-                                editProduct.description
-                              }
-                              onChange={(e) =>
-                                setEditProduct({
-                                  ...editProduct,
-                                  description:
-                                    e.target
+                              <h3 className="text-sm font-bold text-[#3f382f]">
+                                Edit Product
+                              </h3>
+
+                              <input
+                                className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
+                                placeholder="Product name"
+                                value={
+                                  editProduct.name
+                                }
+                                onChange={(e) =>
+                                  setEditProduct({
+                                    ...editProduct,
+                                    name: e.target
                                       .value,
-                                })
-                              }
-                            />
+                                  })
+                                }
+                              />
+
+                              <textarea
+                                className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
+                                placeholder="Description"
+                                rows="2"
+                                value={
+                                  editProduct.description
+                                }
+                                onChange={(e) =>
+                                  setEditProduct({
+                                    ...editProduct,
+                                    description:
+                                      e.target
+                                        .value,
+                                  })
+                                }
+                              />
+
+                              <div className="grid grid-cols-2 gap-2">
+
+                                <input
+                                  type="number"
+                                  min="0"
+                                  className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
+                                  placeholder="Base Price"
+                                  value={
+                                    editProduct.price
+                                  }
+                                  onChange={(e) =>
+                                    setEditProduct({
+                                      ...editProduct,
+                                      price: e
+                                        .target
+                                        .value,
+                                    })
+                                  }
+                                />
+
+                                <input
+                                  type="number"
+                                  min="0"
+                                  className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
+                                  placeholder="Base Stock"
+                                  value={
+                                    editProduct.stock
+                                  }
+                                  onChange={(e) =>
+                                    setEditProduct({
+                                      ...editProduct,
+                                      stock: e
+                                        .target
+                                        .value,
+                                    })
+                                  }
+                                />
+
+                              </div>
 
                             <div className="grid grid-cols-2 gap-2">
 
                               <input
-                                type="number"
-                                min="0"
                                 className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
-                                placeholder="Price"
+                                placeholder="Category"
                                 value={
-                                  editProduct.price
+                                  editProduct.category
                                 }
                                 onChange={(e) =>
                                   setEditProduct({
                                     ...editProduct,
-                                    price: e
-                                      .target
-                                      .value,
+                                    category:e.target.value,
                                   })
                                 }
                               />
 
                               <input
-                                type="number"
-                                min="0"
                                 className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
-                                placeholder="Stock"
+                                placeholder="Subcategory"
                                 value={
-                                  editProduct.stock
+                                  editProduct.subcategory
                                 }
                                 onChange={(e) =>
                                   setEditProduct({
                                     ...editProduct,
-                                    stock: e
-                                      .target
-                                      .value,
+                                    subcategory:e.target.value,
                                   })
                                 }
                               />
 
                             </div>
 
-                            <input
-                              className="w-full rounded-lg border border-[#ded6c9] px-3 py-2 text-xs outline-none focus:border-[#0f766e]"
-                              placeholder="Category"
-                              value={
-                                editProduct.category
-                              }
-                              onChange={(e) =>
-                                setEditProduct({
-                                  ...editProduct,
-                                  category:
-                                    e.target
-                                      .value,
-                                })
-                              }
-                            />
+                            <div>
+                              <label className="mb-1.5 block text-[10px] font-semibold text-[#5f574e]">
+                                Product Images
+                              </label>
 
-                            <div className="flex gap-2 pt-1">
-
-                              <button
-                                type="submit"
-                                className="flex-1 rounded-lg bg-[#0f766e] py-2 text-xs font-semibold text-white hover:bg-[#115e59]"
-                              >
-                                Save
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={
-                                  cancelEditingProduct
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(e) =>
+                                  setEditProduct({
+                                    ...editProduct,
+                                    images: [
+                                      ...(editProduct.images || []),
+                                      ...Array.from(e.target.files || []),
+                                    ],
+                                  })
                                 }
-                                className="flex-1 rounded-lg bg-[#eee8de] py-2 text-xs font-semibold text-[#5f574e] hover:bg-[#e3dbcf]"
-                              >
-                                Cancel
-                              </button>
+                                className="w-full rounded-lg border border-[#ded6c9] bg-white px-3 py-2 text-xs text-[#5f574e] outline-none file:mr-3 file:rounded-md file:border-0 file:bg-[#edf7f5] file:px-2.5 file:py-1.5 file:text-[10px] file:font-semibold file:text-[#0f766e] hover:border-[#8fc9c1]"
+                              />
 
+                              {editProduct.images?.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {editProduct.images.map((image, index) => (
+                                    <div
+                                      key={index}
+                                      className="relative h-16 w-16 overflow-hidden rounded-lg border border-[#ded6c9] bg-[#f8f4ec]"
+                                    >
+                                      <img
+                                        src={
+                                          image instanceof File
+                                            ? URL.createObjectURL(image)
+                                            : image
+                                        }
+                                        alt={`Product ${index + 1}`}
+                                        className="h-full w-full object-cover"
+                                      />
+
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setEditProduct({
+                                            ...editProduct,
+                                            images: editProduct.images.filter(
+                                              (_, imageIndex) =>
+                                                imageIndex !== index
+                                            ),
+                                          })
+                                        }
+                                        className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
 
-                          </form>
+                              {/* =========================
+                                  EDIT VARIANTS
+                              ========================= */}
 
-                        ) : (
+                              <div className="rounded-xl border border-[#ded6c9] bg-[#f8f4ec] p-3">
 
-                          <>
+                                <div className="flex items-center justify-between">
 
-                            <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <h4 className="text-xs font-bold text-[#3f382f]">
+                                      Product Variants
+                                    </h4>
 
-                              <div className="min-w-0">
+                                    <p className="mt-0.5 text-[10px] text-[#81786d]">
+                                      Add size, color,
+                                      storage, weight,
+                                      or any other option.
+                                    </p>
+                                  </div>
 
-                                <h3 className="truncate text-sm font-bold text-[#3f382f]">
-                                  {
-                                    currentProduct.name
-                                  }
-                                </h3>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      addProductVariant(
+                                        true
+                                      )
+                                    }
+                                    className="rounded-lg bg-[#0f766e] px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-[#115e59]"
+                                  >
+                                    + Variant
+                                  </button>
 
-                                <p className="mt-1 text-base font-bold text-[#0f766e]">
-                                  {formatCurrency(
-                                    currentProduct.price
-                                  )}
-                                </p>
+                                </div>
+
+                                {editProduct.variants
+                                  ?.length === 0 ? (
+
+                                  <div className="mt-3 rounded-lg border border-dashed border-[#cfc5b7] bg-white px-3 py-5 text-center">
+
+                                    <p className="text-[10px] text-[#9a9084]">
+                                      No variants added.
+                                    </p>
+
+                                  </div>
+
+                                ) : (
+
+                                  <div className="mt-3 space-y-3">
+
+                                    {editProduct.variants.map(
+                                      (
+                                        variant,
+                                        variantIndex
+                                      ) => (
+
+                                        <div
+                                          key={
+                                            variant._id ||
+                                            `edit-${variantIndex}`
+                                          }
+                                          className="rounded-lg border border-[#ded6c9] bg-white p-3"
+                                        >
+
+                                          <div className="flex items-center justify-between">
+
+                                            <p className="text-[10px] font-bold uppercase tracking-wide text-[#5f574e]">
+                                              Variant{" "}
+                                              {variantIndex +
+                                                1}
+                                            </p>
+
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                removeProductVariant(
+                                                  variantIndex,
+                                                  true
+                                                )
+                                              }
+                                              className="text-[10px] font-semibold text-red-600 hover:text-red-700"
+                                            >
+                                              Remove
+                                            </button>
+
+                                          </div>
+
+                                          <div className="mt-2 space-y-2">
+
+                                            {Object.entries(
+                                              variant.options ||
+                                                {}
+                                            ).map(
+                                              ([
+                                                optionKey,
+                                                optionValue,
+                                              ]) => (
+
+                                                <div
+                                                  key={
+                                                    optionKey
+                                                  }
+                                                  className="flex gap-2"
+                                                >
+
+                                                  <input
+                                                    className="w-1/3 rounded-lg border border-[#ded6c9] px-2.5 py-2 text-[10px] outline-none focus:border-[#0f766e]"
+                                                    placeholder="Option"
+                                                    value={
+                                                      optionKey
+                                                    }
+                                                    readOnly
+                                                  />
+
+                                                  <input
+                                                    className="min-w-0 flex-1 rounded-lg border border-[#ded6c9] px-2.5 py-2 text-[10px] outline-none focus:border-[#0f766e]"
+                                                    placeholder="Value"
+                                                    value={
+                                                      optionValue
+                                                    }
+                                                    onChange={(
+                                                      e
+                                                    ) =>
+                                                      updateVariantOption(
+                                                        variantIndex,
+                                                        optionKey,
+                                                        e
+                                                          .target
+                                                          .value,
+                                                        true
+                                                      )
+                                                    }
+                                                  />
+
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      removeVariantOption(
+                                                        variantIndex,
+                                                        optionKey,
+                                                        true
+                                                      )
+                                                    }
+                                                    className="rounded-lg bg-red-50 px-2 text-xs font-bold text-red-600 hover:bg-red-100"
+                                                    title="Remove option"
+                                                  >
+                                                    ×
+                                                  </button>
+
+                                                </div>
+
+                                              )
+                                            )}
+
+                                          </div>
+
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              addVariantOption(
+                                                variantIndex,
+                                                true
+                                              )
+                                            }
+                                            className="mt-2 rounded-lg bg-[#edf7f5] px-2.5 py-1.5 text-[10px] font-semibold text-[#0f766e] hover:bg-[#dff1ee]"
+                                          >
+                                            + Add Option
+                                          </button>
+
+                                          <div className="mt-3 grid grid-cols-2 gap-2">
+
+                                            <div>
+                                              <label className="mb-1 block text-[9px] font-semibold text-[#81786d]">
+                                                Variant Price
+                                              </label>
+
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                value={
+                                                  variant.price
+                                                }
+                                                onChange={(
+                                                  e
+                                                ) =>
+                                                  updateVariantField(
+                                                    variantIndex,
+                                                    "price",
+                                                    e
+                                                      .target
+                                                      .value,
+                                                    true
+                                                  )
+                                                }
+                                                className="w-full rounded-lg border border-[#ded6c9] px-2.5 py-2 text-[10px] outline-none focus:border-[#0f766e]"
+                                              />
+                                            </div>
+
+                                            <div>
+                                              <label className="mb-1 block text-[9px] font-semibold text-[#81786d]">
+                                                Variant Stock
+                                              </label>
+
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                value={
+                                                  variant.stock
+                                                }
+                                                onChange={(
+                                                  e
+                                                ) =>
+                                                  updateVariantField(
+                                                    variantIndex,
+                                                    "stock",
+                                                    e
+                                                      .target
+                                                      .value,
+                                                    true
+                                                  )
+                                                }
+                                                className="w-full rounded-lg border border-[#ded6c9] px-2.5 py-2 text-[10px] outline-none focus:border-[#0f766e]"
+                                              />
+                                            </div>
+
+                                          </div>
+
+                                        </div>
+
+                                      )
+                                    )}
+
+                                  </div>
+
+                                )}
 
                               </div>
 
-                              <span
-                                className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold ${
-                                  currentProduct
-                                    .stock >
-                                  0
-                                    ? "bg-[#edf7f5] text-[#0f766e]"
-                                    : "bg-red-50 text-red-600"
-                                }`}
-                              >
-                                {currentProduct.stock >
-                                0
-                                  ? "In stock"
-                                  : "Out"}
-                              </span>
+                              <div className="flex gap-2 pt-1">
 
-                            </div>
+                                <button
+                                  type="submit"
+                                  className="flex-1 rounded-lg bg-[#0f766e] py-2 text-xs font-semibold text-white hover:bg-[#115e59]"
+                                >
+                                  Save
+                                </button>
 
-                            {currentProduct.description && (
-
-                              <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-[#81786d]">
-                                {
-                                  currentProduct.description
-                                }
-                              </p>
-
-                            )}
-
-                            <div className="mt-3 flex flex-wrap gap-1.5">
-
-                              {currentProduct.category && (
-
-                                <span className="rounded-full bg-[#edf7f5] px-2 py-1 text-[9px] font-medium text-[#0f766e]">
-                                  {
-                                    currentProduct.category
+                                <button
+                                  type="button"
+                                  onClick={
+                                    cancelEditingProduct
                                   }
+                                  className="flex-1 rounded-lg bg-[#eee8de] py-2 text-xs font-semibold text-[#5f574e] hover:bg-[#e3dbcf]"
+                                >
+                                  Cancel
+                                </button>
+
+                              </div>
+
+                            </form>
+
+                          ) : (
+
+                            <>
+
+                              <div className="flex items-start justify-between gap-3">
+
+                                <div className="min-w-0">
+
+                                  <h3 className="truncate text-sm font-bold text-[#3f382f]">
+                                    {
+                                      currentProduct.name
+                                    }
+                                  </h3>
+
+                                  <p className="mt-1 text-base font-bold text-[#0f766e]">
+                                    {getVariantPriceLabel(
+                                      currentProduct
+                                    )}
+                                  </p>
+
+                                </div>
+
+                                <span
+                                  className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-semibold ${
+                                    totalVariantStock >
+                                    0
+                                      ? "bg-[#edf7f5] text-[#0f766e]"
+                                      : "bg-red-50 text-red-600"
+                                  }`}
+                                >
+                                  {totalVariantStock >
+                                  0
+                                    ? "In stock"
+                                    : "Out"}
                                 </span>
+
+                              </div>
+
+                              {currentProduct.description && (
+
+                                <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-[#81786d]">
+                                  {
+                                    currentProduct.description
+                                  }
+                                </p>
 
                               )}
 
-                              <span className="rounded-full bg-[#eee8de] px-2 py-1 text-[9px] font-medium text-[#81786d]">
-                                Stock:{" "}
-                                {
-                                  currentProduct.stock
-                                }
-                              </span>
+                              <div className="mt-3 flex flex-wrap gap-1.5">
 
-                            </div>
+                                {currentProduct.category && (
 
-                            <div className="mt-4 grid grid-cols-2 gap-2">
+                                  <span className="rounded-full bg-[#edf7f5] px-2 py-1 text-[9px] font-medium text-[#0f766e]">
+                                    {
+                                      currentProduct.category
+                                    }
+                                  </span>
 
-                              <button
-                                onClick={() =>
-                                  startEditingProduct(
-                                    currentProduct
-                                  )
-                                }
-                                className="rounded-lg bg-[#edf7f5] py-2 text-xs font-semibold text-[#0f766e] hover:bg-[#dff1ee]"
-                              >
-                                Edit
-                              </button>
+                                )}
 
-                              <button
-                                onClick={() =>
-                                  deleteProduct(
-                                    currentProduct._id
-                                  )
-                                }
-                                className="rounded-lg bg-red-50 py-2 text-xs font-semibold text-red-600 hover:bg-red-100"
-                              >
-                                Delete
-                              </button>
+                                {currentProduct.subcategory && (
 
-                            </div>
+                                  <span className="rounded-full bg-[#f8f4ec] px-2 py-1 text-[9px] font-medium text-[#6f4e37]">
+                                    {currentProduct.subcategory}
+                                  </span>
 
-                          </>
+                                )}
 
-                        )}
+                                <span className="rounded-full bg-[#eee8de] px-2 py-1 text-[9px] font-medium text-[#81786d]">
+                                  Stock:{" "}
+                                  {
+                                    totalVariantStock
+                                  }
+                                </span>
 
-                      </div>
+                                {hasVariants && (
 
-                    )
+                                  <span className="rounded-full bg-[#f0e7dc] px-2 py-1 text-[9px] font-medium text-[#6f4e37]">
+                                    {
+                                      currentProduct
+                                        .variants
+                                        .length
+                                    }{" "}
+                                    {currentProduct
+                                      .variants
+                                      .length === 1
+                                      ? "variant"
+                                      : "variants"}
+                                  </span>
+
+                                )}
+
+                              </div>
+
+                              {hasVariants && (
+
+                                <div className="mt-3 rounded-lg bg-[#f8f4ec] p-2.5">
+
+                                  <p className="text-[9px] font-semibold uppercase tracking-wide text-[#9a9084]">
+                                    Variant Stock
+                                  </p>
+
+                                  <div className="mt-2 space-y-1">
+
+                                    {currentProduct.variants
+                                      .slice(0, 4)
+                                      .map(
+                                        (
+                                          variant
+                                        ) => (
+
+                                          <div
+                                            key={
+                                              variant._id
+                                            }
+                                            className="flex items-center justify-between text-[10px]"
+                                          >
+
+                                            <span className="truncate text-[#5f574e]">
+                                              {Object.entries(
+                                                variant.options ||
+                                                  {}
+                                              )
+                                                .map(
+                                                  ([
+                                                    key,
+                                                    value,
+                                                  ]) =>
+                                                    `${key}: ${value}`
+                                                )
+                                                .join(
+                                                  " • "
+                                                )}
+                                            </span>
+
+                                            <span className="ml-2 shrink-0 font-semibold text-[#81786d]">
+                                              {
+                                                variant.stock
+                                              }{" "}
+                                              left
+                                            </span>
+
+                                          </div>
+
+                                        )
+                                      )}
+
+                                    {currentProduct.variants
+                                      .length > 4 && (
+
+                                      <p className="pt-1 text-[9px] text-[#9a9084]">
+                                        +
+                                        {currentProduct
+                                          .variants
+                                          .length -
+                                          4}{" "}
+                                        more variants
+                                      </p>
+
+                                    )}
+
+                                  </div>
+
+                                </div>
+
+                              )}
+
+                              <div className="mt-4 grid grid-cols-2 gap-2">
+
+                                <button
+                                  onClick={() =>
+                                    startEditingProduct(
+                                      currentProduct
+                                    )
+                                  }
+                                  className="rounded-lg bg-[#edf7f5] py-2 text-xs font-semibold text-[#0f766e] hover:bg-[#dff1ee]"
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  onClick={() =>
+                                    deleteProduct(
+                                      currentProduct._id
+                                    )
+                                  }
+                                  className="rounded-lg bg-red-50 py-2 text-xs font-semibold text-red-600 hover:bg-red-100"
+                                >
+                                  Delete
+                                </button>
+
+                              </div>
+
+                            </>
+
+                          )}
+
+                        </div>
+                      );
+                    }
                   )}
 
                 </div>
 
               )}
 
-              {/* Create Product */}
+              {/* =================================================
+                  CREATE PRODUCT
+              ================================================= */}
 
               <div className="mt-6 rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm">
 
@@ -1810,7 +2611,7 @@ export default function VendorDashboard() {
                       type="number"
                       min="0"
                       className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
-                      placeholder="Price"
+                      placeholder="Base Price"
                       value={product.price}
                       onChange={(e) =>
                         setProduct({
@@ -1824,7 +2625,7 @@ export default function VendorDashboard() {
                       type="number"
                       min="0"
                       className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
-                      placeholder="Stock"
+                      placeholder="Base Stock"
                       value={product.stock}
                       onChange={(e) =>
                         setProduct({
@@ -1836,18 +2637,317 @@ export default function VendorDashboard() {
 
                   </div>
 
-                  <input
-                    className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
-                    placeholder="Category"
-                    value={product.category}
-                    onChange={(e) =>
-                      setProduct({
-                        ...product,
-                        category:
-                          e.target.value,
-                      })
-                    }
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+
+                    <input
+                      className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
+                      placeholder="Category"
+                      value={product.category}
+                      onChange={(e) =>
+                        setProduct({
+                          ...product,
+                          category: e.target.value,
+                        })
+                      }
+                    />
+
+                    <input
+                      className="w-full rounded-lg border border-[#ded6c9] px-3 py-2.5 text-xs outline-none focus:border-[#0f766e]"
+                      placeholder="Subcategory"
+                      value={product.subcategory}
+                      onChange={(e) =>
+                        setProduct({
+                          ...product,
+                          subcategory: e.target.value,
+                        })
+                      }
+                    />
+
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-semibold text-[#5f574e]">
+                      Product Images
+                    </label>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) =>
+                        setProduct({
+                          ...product,
+                          images: [
+                            ...(product.images || []),
+                            ...Array.from(e.target.files || []),
+                          ],
+                        })
+                      }
+                      className="w-full rounded-lg border border-[#ded6c9] bg-white px-3 py-2 text-xs text-[#5f574e] outline-none file:mr-3 file:rounded-md file:border-0 file:bg-[#edf7f5] file:px-2.5 file:py-1.5 file:text-[10px] file:font-semibold file:text-[#0f766e] hover:border-[#8fc9c1]"
+                    />
+
+                    {product.images?.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {product.images.map((image, index) => (
+                          <div
+                            key={index}
+                            className="relative h-16 w-16 overflow-hidden rounded-lg border border-[#ded6c9] bg-[#f8f4ec]"
+                          >
+                            <img
+                              src={
+                                image instanceof File
+                                  ? URL.createObjectURL(image)
+                                  : image
+                              }
+                              alt={`Product ${index + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setProduct({
+                                  ...product,
+                                  images: product.images.filter(
+                                    (_, imageIndex) =>
+                                      imageIndex !== index
+                                  ),
+                                })
+                              }
+                              className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ===============================
+                      CREATE VARIANTS
+                  =============================== */}
+
+                  <div className="rounded-xl border border-[#ded6c9] bg-[#f8f4ec] p-3">
+
+                    <div className="flex items-center justify-between">
+
+                      <div>
+                        <h4 className="text-xs font-bold text-[#3f382f]">
+                          Product Variants
+                        </h4>
+
+                        <p className="mt-0.5 text-[10px] text-[#81786d]">
+                          Add size, color, storage,
+                          weight, or any other option.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          addProductVariant(false)
+                        }
+                        className="rounded-lg bg-[#0f766e] px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-[#115e59]"
+                      >
+                        + Variant
+                      </button>
+
+                    </div>
+
+                    {product.variants?.length === 0 ? (
+
+                      <div className="mt-3 rounded-lg border border-dashed border-[#cfc5b7] bg-white px-3 py-5 text-center">
+
+                        <p className="text-[10px] text-[#9a9084]">
+                          No variants added.
+                        </p>
+
+                      </div>
+
+                    ) : (
+
+                      <div className="mt-3 space-y-3">
+
+                        {product.variants.map(
+                          (
+                            variant,
+                            variantIndex
+                          ) => (
+
+                            <div
+                              key={`create-${variantIndex}`}
+                              className="rounded-lg border border-[#ded6c9] bg-white p-3"
+                            >
+
+                              <div className="flex items-center justify-between">
+
+                                <p className="text-[10px] font-bold uppercase tracking-wide text-[#5f574e]">
+                                  Variant{" "}
+                                  {variantIndex +
+                                    1}
+                                </p>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeProductVariant(
+                                      variantIndex,
+                                      false
+                                    )
+                                  }
+                                  className="text-[10px] font-semibold text-red-600 hover:text-red-700"
+                                >
+                                  Remove
+                                </button>
+
+                              </div>
+
+                              <div className="mt-2 space-y-2">
+
+                                {Object.entries(
+                                  variant.options ||
+                                    {}
+                                ).map(
+                                  ([
+                                    optionKey,
+                                    optionValue,
+                                  ]) => (
+
+                                    <div
+                                      key={
+                                        optionKey
+                                      }
+                                      className="flex gap-2"
+                                    >
+
+                                      <input
+                                        className="w-1/3 rounded-lg border border-[#ded6c9] px-2.5 py-2 text-[10px] outline-none focus:border-[#0f766e]"
+                                        placeholder="Option"
+                                        value={
+                                          optionKey
+                                        }
+                                        readOnly
+                                      />
+
+                                      <input
+                                        className="min-w-0 flex-1 rounded-lg border border-[#ded6c9] px-2.5 py-2 text-[10px] outline-none focus:border-[#0f766e]"
+                                        placeholder="Value"
+                                        value={
+                                          optionValue
+                                        }
+                                        onChange={(
+                                          e
+                                        ) =>
+                                          updateVariantOption(
+                                            variantIndex,
+                                            optionKey,
+                                            e
+                                              .target
+                                              .value,
+                                            false
+                                          )
+                                        }
+                                      />
+
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          removeVariantOption(
+                                            variantIndex,
+                                            optionKey,
+                                            false
+                                          )
+                                        }
+                                        className="rounded-lg bg-red-50 px-2 text-xs font-bold text-red-600 hover:bg-red-100"
+                                        title="Remove option"
+                                      >
+                                        ×
+                                      </button>
+
+                                    </div>
+
+                                  )
+                                )}
+
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  addVariantOption(
+                                    variantIndex,
+                                    false
+                                  )
+                                }
+                                className="mt-2 rounded-lg bg-[#edf7f5] px-2.5 py-1.5 text-[10px] font-semibold text-[#0f766e] hover:bg-[#dff1ee]"
+                              >
+                                + Add Option
+                              </button>
+
+                              <div className="mt-3 grid grid-cols-2 gap-2">
+
+                                <div>
+                                  <label className="mb-1 block text-[9px] font-semibold text-[#81786d]">
+                                    Variant Price
+                                  </label>
+
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={
+                                      variant.price
+                                    }
+                                    onChange={(e) =>
+                                      updateVariantField(
+                                        variantIndex,
+                                        "price",
+                                        e.target
+                                          .value,
+                                        false
+                                      )
+                                    }
+                                    className="w-full rounded-lg border border-[#ded6c9] px-2.5 py-2 text-[10px] outline-none focus:border-[#0f766e]"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="mb-1 block text-[9px] font-semibold text-[#81786d]">
+                                    Variant Stock
+                                  </label>
+
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={
+                                      variant.stock
+                                    }
+                                    onChange={(e) =>
+                                      updateVariantField(
+                                        variantIndex,
+                                        "stock",
+                                        e.target
+                                          .value,
+                                        false
+                                      )
+                                    }
+                                    className="w-full rounded-lg border border-[#ded6c9] px-2.5 py-2 text-[10px] outline-none focus:border-[#0f766e]"
+                                  />
+                                </div>
+
+                              </div>
+
+                            </div>
+
+                          )
+                        )}
+
+                      </div>
+
+                    )}
+
+                  </div>
 
                   <button
                     type="submit"
@@ -2116,8 +3216,6 @@ export default function VendorDashboard() {
 
               )}
 
-              {/* Create Store */}
-
               <div className="mt-6 rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm">
 
                 <div className="mb-4">
@@ -2239,8 +3337,6 @@ export default function VendorDashboard() {
 
             <div className="space-y-5">
 
-              {/* Revenue */}
-
               <div className="rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm">
 
                 <div>
@@ -2330,8 +3426,6 @@ export default function VendorDashboard() {
                 </div>
 
               </div>
-
-              {/* Orders */}
 
               <div className="rounded-xl border border-[#ded6c9] bg-white p-5 shadow-sm">
 

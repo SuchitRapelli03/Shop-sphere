@@ -20,15 +20,18 @@ export default function Checkout() {
   const [loading, setLoading] = useState(!isBuyNow);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [error, setError] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("razorpay");
-  const [shippingAddress, setShippingAddress] = useState({
-    fullName: user?.name || "",
-    phone: "",
-    addressLine: "",
-    city: "",
-    state: "",
-    pincode: "",
-  });
+  const [paymentMethod, setPaymentMethod] =
+    useState("razorpay");
+
+  const [shippingAddress, setShippingAddress] =
+    useState({
+      fullName: user?.name || "",
+      phone: "",
+      addressLine: "",
+      city: "",
+      state: "",
+      pincode: "",
+    });
 
   /*
   =========================================================
@@ -47,9 +50,11 @@ export default function Checkout() {
         setLoading(true);
         setError("");
 
-        const { data } = await api.get("/cart");
+        const { data } =
+          await api.get("/cart");
 
-        const loadedCart = data?.cart || null;
+        const loadedCart =
+          data?.cart || null;
 
         setLocalCart(loadedCart);
 
@@ -125,6 +130,44 @@ export default function Checkout() {
 
   /*
   =========================================================
+  VARIANT HELPERS
+  =========================================================
+  */
+
+  function getVariant(product, variantId) {
+    if (!product || !variantId) {
+      return null;
+    }
+
+    return (
+      product.variants?.find(
+        (variant) =>
+          variant._id?.toString() ===
+          variantId?.toString()
+      ) || null
+    );
+  }
+
+  function getVariantOptions(variant) {
+    if (!variant?.options) {
+      return [];
+    }
+
+    if (
+      variant.options instanceof Map
+    ) {
+      return Array.from(
+        variant.options.entries()
+      );
+    }
+
+    return Object.entries(
+      variant.options
+    );
+  }
+
+  /*
+  =========================================================
   CHECKOUT ITEMS
   =========================================================
   */
@@ -135,34 +178,109 @@ export default function Checkout() {
         return [];
       }
 
+      const product =
+        buyNowItem.product;
+
+      const variantId =
+        buyNowItem.variantId || null;
+
+      /*
+      Prefer the variant object passed from ProductDetails.
+      If it is not available, resolve it from the product.
+      */
+
+      const variant =
+        buyNowItem.variant ||
+        getVariant(
+          product,
+          variantId
+        );
+
       return [
         {
+          itemId:
+            buyNowItem.itemId ||
+            `${product._id}-${variantId || "base"}`,
+
           productId:
             buyNowItem.productId ||
-            buyNowItem.product._id,
+            product._id,
 
-          product: buyNowItem.product,
+          product,
+
+          variantId,
+
+          variant,
 
           quantity:
-            Number(buyNowItem.quantity) || 1,
+            Number(
+              buyNowItem.quantity
+            ) || 1,
         },
       ];
     }
 
     return (
-      cart?.items?.map((item) => ({
-        productId:
-          item.productId?._id ||
-          item.productId,
+      cart?.items?.map((item) => {
+        const product =
+          item.productId;
 
-        product:
-          item.productId,
+        const variantId =
+          item.variantId || null;
 
-        quantity:
-          Number(item.quantity) || 1,
-      })) || []
+        const variant =
+          getVariant(
+            product,
+            variantId
+          );
+
+        return {
+          itemId:
+            item._id ||
+            `${product?._id}-${variantId || "base"}`,
+
+          productId:
+            product?._id ||
+            product,
+
+          product,
+
+          variantId,
+
+          variant,
+
+          quantity:
+            Number(item.quantity) || 1,
+        };
+      }) || []
     );
-  }, [buyNowItem, cart, isBuyNow]);
+  }, [
+    buyNowItem,
+    cart,
+    isBuyNow,
+  ]);
+
+  /*
+  =========================================================
+  GET CHECKOUT ITEM PRICE
+  =========================================================
+  */
+
+  function getCheckoutItemPrice(item) {
+    if (item.variant) {
+      return (
+        Number(
+          item.variant.price
+        ) || 0
+      );
+    }
+
+    return (
+      Number(
+        item.product?.price
+      ) || 0
+    );
+  }
 
   /*
   =========================================================
@@ -174,7 +292,9 @@ export default function Checkout() {
     return checkoutItems.reduce(
       (total, item) => {
         const price =
-          Number(item.product?.price) || 0;
+          getCheckoutItemPrice(
+            item
+          );
 
         return (
           total +
@@ -187,7 +307,8 @@ export default function Checkout() {
 
   const deliveryFee = 0;
 
-  const total = subtotal + deliveryFee;
+  const total =
+    subtotal + deliveryFee;
 
   /*
   =========================================================
@@ -226,11 +347,15 @@ export default function Checkout() {
       script.src =
         "https://checkout.razorpay.com/v1/checkout.js";
 
-      script.onload = () => resolve(true);
+      script.onload = () =>
+        resolve(true);
 
-      script.onerror = () => resolve(false);
+      script.onerror = () =>
+        resolve(false);
 
-      document.body.appendChild(script);
+      document.body.appendChild(
+        script
+      );
     });
   }
 
@@ -259,6 +384,24 @@ export default function Checkout() {
       return;
     }
 
+    /*
+    -------------------------------------------------------
+    Buy Now variant validation
+    -------------------------------------------------------
+    */
+
+    if (
+      isBuyNow &&
+      buyNowItem?.product?.variants?.length > 0 &&
+      !buyNowItem?.variantId
+    ) {
+      setError(
+        "Please select a product variant before checkout."
+      );
+
+      return;
+    }
+
     try {
       setPaymentLoading(true);
       setError("");
@@ -280,35 +423,44 @@ export default function Checkout() {
 
       /*
       -------------------------------------------------------
-      Create Razorpay order
+      CREATE RAZORPAY ORDER
       -------------------------------------------------------
 
-      For Buy Now:
-        send productId + quantity
+      Buy Now:
+        productId
+        variantId
+        quantity
 
-      For Cart:
-        send checkoutType = CART
+      Cart:
+        checkoutType = CART
 
       The backend calculates the real amount.
       -------------------------------------------------------
       */
 
-      const requestBody = isBuyNow
-        ? {
-            checkoutType: "BUY_NOW",
+      const requestBody =
+        isBuyNow
+          ? {
+              checkoutType:
+                "BUY_NOW",
 
-            productId:
-              buyNowItem.productId ||
-              buyNowItem.product?._id,
+              productId:
+                buyNowItem.productId ||
+                buyNowItem.product?._id,
 
-            quantity:
-              Number(
-                buyNowItem.quantity
-              ) || 1,
-          }
-        : {
-            checkoutType: "CART",
-          };
+              variantId:
+                buyNowItem.variantId ||
+                null,
+
+              quantity:
+                Number(
+                  buyNowItem.quantity
+                ) || 1,
+            }
+          : {
+              checkoutType:
+                "CART",
+            };
 
       const { data } =
         await api.post(
@@ -364,43 +516,43 @@ export default function Checkout() {
 
             /*
             -------------------------------------------------
-            Verify payment on backend
+            VERIFY PAYMENT
             -------------------------------------------------
             */
 
-            const verificationResponse =
-              await api.post(
-                "/payments/verify",
-                {
-                  razorpay_order_id:
-                    response.razorpay_order_id,
+            await api.post(
+              "/payments/verify",
+              {
+                razorpay_order_id:
+                  response.razorpay_order_id,
 
-                  razorpay_payment_id:
-                    response.razorpay_payment_id,
+                razorpay_payment_id:
+                  response.razorpay_payment_id,
 
-                  razorpay_signature:
-                    response.razorpay_signature,
+                razorpay_signature:
+                  response.razorpay_signature,
 
-                  shippingAddress,
-                }
-              );
+                shippingAddress,
+              }
+            );
 
             /*
             -------------------------------------------------
-            Cart checkout:
-              backend clears cart.
+            CART CHECKOUT
+            -------------------------------------------------
 
-            Buy Now:
-              backend leaves cart untouched.
+            Backend clears the cart.
 
-            Refresh Redux cart only for cart checkout.
+            Buy Now leaves the cart untouched.
             -------------------------------------------------
             */
 
             if (!isBuyNow) {
               try {
                 const cartResponse =
-                  await api.get("/cart");
+                  await api.get(
+                    "/cart"
+                  );
 
                 const updatedCart =
                   cartResponse.data.cart;
@@ -411,7 +563,8 @@ export default function Checkout() {
 
                 dispatch(
                   setCart(
-                    updatedCart?.items || []
+                    updatedCart?.items ||
+                      []
                   )
                 );
               } catch (cartError) {
@@ -421,6 +574,7 @@ export default function Checkout() {
                 );
               }
             }
+
             navigate(
               "/checkout/success"
             );
@@ -431,7 +585,8 @@ export default function Checkout() {
             );
 
             setError(
-              error.response?.data?.message ||
+              error.response?.data
+                ?.message ||
                 "Payment verification failed."
             );
           } finally {
@@ -440,15 +595,18 @@ export default function Checkout() {
         },
 
         modal: {
-          ondismiss: function () {
-            setPaymentLoading(false);
-          },
+          ondismiss:
+            function () {
+              setPaymentLoading(
+                false
+              );
+            },
         },
       };
 
       /*
       -------------------------------------------------------
-      Open Razorpay
+      OPEN RAZORPAY
       -------------------------------------------------------
       */
 
@@ -466,7 +624,8 @@ export default function Checkout() {
           );
 
           setError(
-            response.error?.description ||
+            response.error
+              ?.description ||
               "Payment failed. Please try again."
           );
 
@@ -569,7 +728,10 @@ export default function Checkout() {
               <Link
                 to={
                   isBuyNow
-                    ? `/product/${buyNowItem?.productId || buyNowItem?.product?._id}`
+                    ? `/product/${
+                        buyNowItem?.productId ||
+                        buyNowItem?.product?._id
+                      }`
                     : "/cart"
                 }
                 className="text-xs font-black text-[#64939c] transition hover:text-[#4f7e85]"
@@ -804,13 +966,19 @@ export default function Checkout() {
                       product?.images?.[0];
 
                     const price =
-                      Number(
-                        product?.price
-                      ) || 0;
+                      getCheckoutItemPrice(
+                        item
+                      );
+
+                    const variantOptions =
+                      getVariantOptions(
+                        item.variant
+                      );
 
                     return (
                       <div
                         key={
+                          item.itemId ||
                           item.productId ||
                           index
                         }
@@ -838,6 +1006,23 @@ export default function Checkout() {
                             {product?.name ||
                               "Product"}
                           </h3>
+
+                          {variantOptions.length >
+                            0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {variantOptions.map(
+                                ([optionName, value]) => (
+                                  <span
+                                    key={`${optionName}-${value}`}
+                                    className="rounded-full bg-[#f0f7f8] px-2.5 py-1 text-[10px] font-black text-[#55777d]"
+                                  >
+                                    {optionName}:{" "}
+                                    {value}
+                                  </span>
+                                )
+                              )}
+                            </div>
+                          )}
 
                           <p className="mt-2 text-xs font-semibold text-[#8a7d72]">
                             Quantity:{" "}
@@ -900,24 +1085,32 @@ export default function Checkout() {
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {/* Razorpay */}
 
-                {/* Razorpay — active */}
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod("razorpay")}
+                  onClick={() =>
+                    setPaymentMethod(
+                      "razorpay"
+                    )
+                  }
                   className={`relative flex flex-col gap-2 rounded-2xl border-2 p-4 text-left transition ${
-                    paymentMethod === "razorpay"
+                    paymentMethod ===
+                    "razorpay"
                       ? "border-[#674936] bg-[#fdf6f0]"
                       : "border-[#ded5ca] bg-[#faf7f1] hover:border-[#c4b5a5]"
                   }`}
                 >
-                  {paymentMethod === "razorpay" && (
+                  {paymentMethod ===
+                    "razorpay" && (
                     <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#674936] text-[10px] text-white">
                       ✓
                     </span>
                   )}
 
-                  <span className="text-2xl">💳</span>
+                  <span className="text-2xl">
+                    💳
+                  </span>
 
                   <p className="text-sm font-black text-[#30251f]">
                     Razorpay
@@ -928,7 +1121,12 @@ export default function Checkout() {
                   </p>
 
                   <div className="mt-1 flex flex-wrap gap-1.5">
-                    {["UPI", "Cards", "Net Banking", "Wallets"].map((tag) => (
+                    {[
+                      "UPI",
+                      "Cards",
+                      "Net Banking",
+                      "Wallets",
+                    ].map((tag) => (
                       <span
                         key={tag}
                         className="rounded-full bg-[#ede8e0] px-2 py-0.5 text-[9px] font-black text-[#746a62]"
@@ -939,13 +1137,16 @@ export default function Checkout() {
                   </div>
                 </button>
 
-                {/* Stripe — coming soon */}
+                {/* Stripe */}
+
                 <div className="relative flex flex-col gap-2 rounded-2xl border-2 border-dashed border-[#ded5ca] bg-[#faf8f5] p-4 opacity-60">
                   <span className="absolute right-3 top-3 rounded-full bg-[#e0dbd4] px-2 py-0.5 text-[9px] font-black text-[#746a62]">
                     Coming Soon
                   </span>
 
-                  <span className="text-2xl">🌐</span>
+                  <span className="text-2xl">
+                    🌐
+                  </span>
 
                   <p className="text-sm font-black text-[#30251f]">
                     Stripe
@@ -956,7 +1157,11 @@ export default function Checkout() {
                   </p>
 
                   <div className="mt-1 flex flex-wrap gap-1.5">
-                    {["Visa", "Mastercard", "Amex"].map((tag) => (
+                    {[
+                      "Visa",
+                      "Mastercard",
+                      "Amex",
+                    ].map((tag) => (
                       <span
                         key={tag}
                         className="rounded-full bg-[#ede8e0] px-2 py-0.5 text-[9px] font-black text-[#746a62]"
@@ -969,6 +1174,7 @@ export default function Checkout() {
               </div>
 
               {/* Security badges */}
+
               <div className="mt-5 flex flex-wrap gap-2">
                 <span className="rounded-full border border-[#ded5ca] bg-[#faf7f1] px-3 py-1.5 text-[10px] font-black text-[#746a62]">
                   🔒 SSL Encrypted

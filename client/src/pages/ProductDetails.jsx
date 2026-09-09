@@ -10,10 +10,17 @@ export default function ProductDetails() {
   const [selectedImage, setSelectedImage] = useState("");
   const [quantity, setQuantity] = useState(1);
 
+  const [selectedOptions, setSelectedOptions] = useState({});
+  const [selectedVariant, setSelectedVariant] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
 
   const [error, setError] = useState("");
+
+  /* =========================================================
+     LOAD PRODUCT
+  ========================================================= */
 
   useEffect(() => {
     async function loadProduct() {
@@ -30,6 +37,10 @@ export default function ProductDetails() {
         if (fetchedProduct?.images?.length) {
           setSelectedImage(fetchedProduct.images[0]);
         }
+
+        setQuantity(1);
+        setSelectedOptions({});
+        setSelectedVariant(null);
       } catch (err) {
         console.error("PRODUCT DETAILS ERROR:", err);
 
@@ -47,11 +58,156 @@ export default function ProductDetails() {
     }
   }, [id]);
 
+  /* =========================================================
+     VARIANT HELPERS
+  ========================================================= */
+
+  const variants = Array.isArray(product?.variants)
+    ? product.variants
+    : [];
+
+  const hasVariants = variants.length > 0;
+
+  function getVariantOptions() {
+    const optionNames = [];
+
+    variants.forEach((variant) => {
+      const options = variant?.options || {};
+
+      Object.keys(options).forEach((name) => {
+        if (!optionNames.includes(name)) {
+          optionNames.push(name);
+        }
+      });
+    });
+
+    return optionNames;
+  }
+
+  function getOptionValues(optionName) {
+    const values = [];
+
+    variants.forEach((variant) => {
+      const value =
+        variant?.options?.[optionName];
+
+      if (
+        value &&
+        !values.includes(value)
+      ) {
+        values.push(value);
+      }
+    });
+
+    return values;
+  }
+
+  const variantOptionNames = getVariantOptions();
+
+  function findMatchingVariant(options) {
+    if (!hasVariants) {
+      return null;
+    }
+
+    return (
+      variants.find((variant) => {
+        const variantOptions =
+          variant?.options || {};
+
+        return variantOptionNames.every(
+          (optionName) =>
+            options[optionName] ===
+            variantOptions[optionName]
+        );
+      }) || null
+    );
+  }
+
+function selectVariantOption(optionName, value) {
+  setError("");
+
+  const isAlreadySelected =
+    selectedOptions[optionName] === value;
+
+  const next = {
+    ...selectedOptions,
+  };
+
+  if (isAlreadySelected) {
+    delete next[optionName];
+  } else {
+    next[optionName] = value;
+  }
+
+  setSelectedOptions(next);
+  setSelectedVariant(
+    findMatchingVariant(next)
+  );
+  setQuantity(1);
+}
+
+  /* =========================================================
+     CURRENT PRICE / STOCK
+  ========================================================= */
+
+  const currentPrice = hasVariants
+  ? Number(
+      selectedVariant?.price ??
+        product?.price ??
+        0
+    )
+  : Number(product?.price || 0);
+
+  const currentStock = hasVariants
+    ? Number(selectedVariant?.stock || 0)
+    : Number(product?.stock || 0);
+
+  const allVariantOptionsSelected =
+    hasVariants &&
+    variantOptionNames.every(
+      (optionName) =>
+        selectedOptions[optionName]
+    );
+
+  const isVariantSelectionComplete =
+    !hasVariants ||
+    Boolean(
+      selectedVariant &&
+        allVariantOptionsSelected
+    );
+
+  const isOutOfStock =
+    currentStock <= 0;
+
+  const originalPrice =
+    Number(product?.originalPrice || 0) >
+    currentPrice
+      ? Number(product.originalPrice)
+      : null;
+
+  const discount = originalPrice
+    ? Math.round(
+        ((originalPrice - currentPrice) /
+          originalPrice) *
+          100
+      )
+    : null;
+
+  const totalPrice =
+    currentPrice * quantity;
+
+  /* =========================================================
+     QUANTITY
+  ========================================================= */
+
   function increaseQuantity() {
     if (!product) return;
 
     setQuantity((current) =>
-      Math.min(current + 1, product.stock)
+      Math.min(
+        current + 1,
+        currentStock
+      )
     );
   }
 
@@ -61,21 +217,50 @@ export default function ProductDetails() {
     );
   }
 
+  /* =========================================================
+     ADD TO CART
+  ========================================================= */
+
   async function addToCart() {
+    if (!product) return;
+
+    if (hasVariants && !selectedVariant) {
+      setError(
+        "Please select all product options before adding to cart."
+      );
+
+      return;
+    }
+
+    if (currentStock <= 0) {
+      setError(
+        "This product is out of stock."
+      );
+
+      return;
+    }
+
     try {
       setAdding(true);
       setError("");
 
       await api.post("/cart/items", {
         productId: product._id,
+        variantId:
+          selectedVariant?._id || null,
         quantity,
       });
 
-      alert("Product added to cart successfully 🛒");
+      alert(
+        "Product added to cart successfully 🛒"
+      );
 
       navigate("/cart");
     } catch (err) {
-      console.error("ADD TO CART ERROR:", err);
+      console.error(
+        "ADD TO CART ERROR:",
+        err
+      );
 
       setError(
         err.response?.data?.message ||
@@ -86,19 +271,42 @@ export default function ProductDetails() {
     }
   }
 
+  /* =========================================================
+     BUY NOW
+  ========================================================= */
+
   function buyNow() {
-    if (!product || isOutOfStock) return;
+    if (!product) return;
+
+    if (hasVariants && !selectedVariant) {
+      setError(
+        "Please select all product options before buying."
+      );
+
+      return;
+    }
+
+    if (isOutOfStock) {
+      return;
+    }
 
     navigate("/checkout", {
       state: {
         buyNowItem: {
           productId: product._id,
+          variantId:
+            selectedVariant?._id || null,
           product: product,
+          variant: selectedVariant || null,
           quantity,
         },
       },
     });
   }
+
+  /* =========================================================
+     LOADING
+  ========================================================= */
 
   if (loading) {
     return (
@@ -124,6 +332,10 @@ export default function ProductDetails() {
       </main>
     );
   }
+
+  /* =========================================================
+     ERROR
+  ========================================================= */
 
   if (error && !product) {
     return (
@@ -156,24 +368,9 @@ export default function ProductDetails() {
     ? product.images
     : [];
 
-  const isOutOfStock = product.stock <= 0;
-
-  const price = Number(product.price || 0);
-
-  const originalPrice =
-    Number(product.originalPrice || 0) > price
-      ? Number(product.originalPrice)
-      : null;
-
-  const discount = originalPrice
-    ? Math.round(
-        ((originalPrice - price) / originalPrice) * 100
-      )
-    : null;
-
-  const totalPrice = price * quantity;
-
-  const rating = Number(product.rating || 4.2);
+  const rating = Number(
+    product.rating || 4.2
+  );
 
   const reviewCount = Number(
     product.reviewCount ||
@@ -240,10 +437,9 @@ export default function ProductDetails() {
 
             <div className="flex flex-col gap-4 sm:flex-row">
 
-              {/* Thumbnails */}
-
               {images.length > 1 && (
                 <div className="order-2 flex gap-3 overflow-x-auto sm:order-1 sm:w-20 sm:flex-col">
+
                   {images.map((image, index) => (
                     <button
                       key={`${image}-${index}`}
@@ -264,10 +460,9 @@ export default function ProductDetails() {
                       />
                     </button>
                   ))}
+
                 </div>
               )}
-
-              {/* Main Image */}
 
               <div className="order-1 flex-1 sm:order-2">
 
@@ -292,9 +487,8 @@ export default function ProductDetails() {
                   >
                     ♡
                   </button>
-                </div>
 
-                {/* Image count */}
+                </div>
 
                 {images.length > 0 && (
                   <p className="mt-3 text-center text-xs text-slate-400">
@@ -304,36 +498,39 @@ export default function ProductDetails() {
                       : "images"}
                   </p>
                 )}
+
               </div>
             </div>
 
             {/* Mobile Action Buttons */}
 
-            {!isOutOfStock && (
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:hidden">
+            {!isOutOfStock &&
+              isVariantSelectionComplete && (
+                <div className="mt-5 grid grid-cols-2 gap-3 sm:hidden">
 
-                <button
-                  type="button"
-                  onClick={addToCart}
-                  disabled={adding}
-                  className="rounded-lg border-2 border-[#174c3c] py-3 font-black text-[#174c3c] disabled:opacity-50"
-                >
-                  {adding
-                    ? "Adding..."
-                    : "🛒 Add to Cart"}
-                </button>
+                  <button
+                    type="button"
+                    onClick={addToCart}
+                    disabled={adding}
+                    className="rounded-lg border-2 border-[#174c3c] py-3 font-black text-[#174c3c] disabled:opacity-50"
+                  >
+                    {adding
+                      ? "Adding..."
+                      : "🛒 Add to Cart"}
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={buyNow}
-                  disabled={adding}
-                  className="rounded-lg bg-[#174c3c] py-3 font-black text-white disabled:opacity-50"
-                >
-                  ⚡ Buy Now
-                </button>
+                  <button
+                    type="button"
+                    onClick={buyNow}
+                    disabled={adding}
+                    className="rounded-lg bg-[#174c3c] py-3 font-black text-white disabled:opacity-50"
+                  >
+                    ⚡ Buy Now
+                  </button>
 
-              </div>
-            )}
+                </div>
+              )}
+
           </div>
 
           {/* =========================
@@ -341,8 +538,6 @@ export default function ProductDetails() {
           ========================= */}
 
           <div className="space-y-4">
-
-            {/* Product Info Card */}
 
             <div className="rounded-xl bg-white p-5 shadow-sm sm:p-6">
 
@@ -382,13 +577,17 @@ export default function ProductDetails() {
                 <div className="flex flex-wrap items-end gap-3">
 
                   <span className="text-4xl font-black text-slate-900">
-                    ₹{price.toLocaleString("en-IN")}
+                    ₹
+                    {currentPrice.toLocaleString(
+                      "en-IN"
+                    )}
                   </span>
 
                   {originalPrice && (
                     <>
                       <span className="pb-1 text-lg text-slate-400 line-through">
-                        ₹{originalPrice.toLocaleString(
+                        ₹
+                        {originalPrice.toLocaleString(
                           "en-IN"
                         )}
                       </span>
@@ -405,6 +604,91 @@ export default function ProductDetails() {
                   inclusive of applicable taxes
                 </p>
               </div>
+
+              {/* =====================================================
+                  VARIANT SELECTORS
+              ===================================================== */}
+
+              {hasVariants && (
+                <div className="mt-6 space-y-5 border-t border-slate-100 pt-5">
+
+                  <div className="flex items-center justify-between">
+
+                    <h3 className="font-black text-slate-900">
+                      Select Options
+                    </h3>
+
+                    {!selectedVariant && (
+                      <span className="text-xs font-semibold text-[#174c3c]">
+                        Required
+                      </span>
+                    )}
+
+                  </div>
+
+                  {variantOptionNames.map(
+                    (optionName) => {
+
+                      const values =
+                        getOptionValues(
+                          optionName
+                        );
+
+                      return (
+                        <div
+                          key={optionName}
+                        >
+                          <p className="mb-2 text-sm font-bold text-slate-800">
+                            {optionName}
+                          </p>
+
+                          <div className="flex flex-wrap gap-2">
+
+                            {values.map(
+                              (value) => {
+
+                                const selected =
+                                  selectedOptions[
+                                    optionName
+                                  ] === value;
+
+                                return (
+                                  <button
+                                    key={value}
+                                    type="button"
+                                    onClick={() =>
+                                      selectVariantOption(
+                                        optionName,
+                                        value
+                                      )
+                                    }
+                                    disabled={adding}
+                                    className={`rounded-lg border-2 px-4 py-2.5 text-sm font-bold transition ${
+                                      selected
+                                        ? "border-[#174c3c] bg-[#eef6f2] text-[#174c3c]"
+                                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"
+                                    }`}
+                                  >
+                                    {value}
+                                  </button>
+                                );
+                              }
+                            )}
+
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+
+                  {!selectedVariant && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+                      Please select all options to see the available price and stock.
+                    </div>
+                  )}
+
+                </div>
+              )}
 
               {/* Deal */}
 
@@ -459,13 +743,18 @@ export default function ProductDetails() {
 
               <div className="mt-5">
 
-                {isOutOfStock ? (
+                {hasVariants &&
+                !selectedVariant ? (
+                  <span className="inline-flex rounded-md bg-amber-100 px-3 py-2 text-sm font-bold text-amber-700">
+                    Select options to check stock
+                  </span>
+                ) : isOutOfStock ? (
                   <span className="inline-flex rounded-md bg-red-100 px-3 py-2 text-sm font-bold text-red-700">
                     Out of stock
                   </span>
-                ) : product.stock <= 5 ? (
+                ) : currentStock <= 5 ? (
                   <span className="inline-flex rounded-md bg-orange-100 px-3 py-2 text-sm font-bold text-orange-700">
-                    🔥 Only {product.stock} left
+                    🔥 Only {currentStock} left
                   </span>
                 ) : (
                   <span className="inline-flex rounded-md bg-emerald-100 px-3 py-2 text-sm font-bold text-emerald-700">
@@ -477,94 +766,105 @@ export default function ProductDetails() {
 
               {/* Quantity */}
 
-              {!isOutOfStock && (
-                <div className="mt-6">
+              {!isOutOfStock &&
+                isVariantSelectionComplete && (
+                  <div className="mt-6">
 
-                  <p className="mb-2 text-sm font-bold text-slate-800">
-                    Quantity
-                  </p>
+                    <p className="mb-2 text-sm font-bold text-slate-800">
+                      Quantity
+                    </p>
 
-                  <div className="flex h-11 w-fit overflow-hidden rounded-lg border border-slate-300">
+                    <div className="flex h-11 w-fit overflow-hidden rounded-lg border border-slate-300">
 
-                    <button
-                      type="button"
-                      onClick={decreaseQuantity}
-                      disabled={
-                        quantity <= 1 ||
-                        adding
-                      }
-                      className="w-11 text-lg font-bold hover:bg-slate-100 disabled:opacity-40"
-                    >
-                      −
-                    </button>
+                      <button
+                        type="button"
+                        onClick={
+                          decreaseQuantity
+                        }
+                        disabled={
+                          quantity <= 1 ||
+                          adding
+                        }
+                        className="w-11 text-lg font-bold hover:bg-slate-100 disabled:opacity-40"
+                      >
+                        −
+                      </button>
 
-                    <span className="flex w-14 items-center justify-center border-x border-slate-300 font-bold">
-                      {quantity}
-                    </span>
+                      <span className="flex w-14 items-center justify-center border-x border-slate-300 font-bold">
+                        {quantity}
+                      </span>
 
-                    <button
-                      type="button"
-                      onClick={increaseQuantity}
-                      disabled={
-                        quantity >= product.stock ||
-                        adding
-                      }
-                      className="w-11 text-lg font-bold hover:bg-slate-100 disabled:opacity-40"
-                    >
-                      +
-                    </button>
+                      <button
+                        type="button"
+                        onClick={
+                          increaseQuantity
+                        }
+                        disabled={
+                          quantity >=
+                            currentStock ||
+                          adding
+                        }
+                        className="w-11 text-lg font-bold hover:bg-slate-100 disabled:opacity-40"
+                      >
+                        +
+                      </button>
+
+                    </div>
 
                   </div>
-
-                </div>
-              )}
+                )}
 
               {/* Desktop Buttons */}
 
-              {!isOutOfStock && (
-                <div className="mt-6 hidden grid-cols-2 gap-3 sm:grid">
+              {!isOutOfStock &&
+                isVariantSelectionComplete && (
+                  <div className="mt-6 hidden grid-cols-2 gap-3 sm:grid">
 
-                  <button
-                    type="button"
-                    onClick={addToCart}
-                    disabled={adding}
-                    className="rounded-lg border-2 border-[#174c3c] py-4 font-black text-[#174c3c] transition hover:bg-[#eef6f2] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {adding
-                      ? "Adding to Cart..."
-                      : "🛒 Add to Cart"}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={addToCart}
+                      disabled={adding}
+                      className="rounded-lg border-2 border-[#174c3c] py-4 font-black text-[#174c3c] transition hover:bg-[#eef6f2] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {adding
+                        ? "Adding to Cart..."
+                        : "🛒 Add to Cart"}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={buyNow}
-                    disabled={adding}
-                    className="rounded-lg bg-[#174c3c] py-4 font-black text-white transition hover:bg-[#123c30] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    ⚡ Buy Now
-                  </button>
+                    <button
+                      type="button"
+                      onClick={buyNow}
+                      disabled={adding}
+                      className="rounded-lg bg-[#174c3c] py-4 font-black text-white transition hover:bg-[#123c30] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      ⚡ Buy Now
+                    </button>
 
-                </div>
-              )}
+                  </div>
+                )}
 
               {/* Total */}
 
-              {!isOutOfStock && (
-                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+              {!isOutOfStock &&
+                isVariantSelectionComplete && (
+                  <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
 
-                  <span className="text-sm text-slate-500">
-                    Total for {quantity} item
-                    {quantity > 1 ? "s" : ""}
-                  </span>
+                    <span className="text-sm text-slate-500">
+                      Total for {quantity} item
+                      {quantity > 1
+                        ? "s"
+                        : ""}
+                    </span>
 
-                  <span className="text-xl font-black text-[#174c3c]">
-                    ₹{totalPrice.toLocaleString(
-                      "en-IN"
-                    )}
-                  </span>
+                    <span className="text-xl font-black text-[#174c3c]">
+                      ₹
+                      {totalPrice.toLocaleString(
+                        "en-IN"
+                      )}
+                    </span>
 
-                </div>
-              )}
+                  </div>
+                )}
 
               {/* Error */}
 
@@ -667,8 +967,6 @@ export default function ProductDetails() {
 
           <div className="grid gap-8 p-5 sm:p-7 lg:grid-cols-[1fr_1fr]">
 
-            {/* Description */}
-
             <div>
               <h3 className="font-black text-slate-900">
                 Description
@@ -679,8 +977,6 @@ export default function ProductDetails() {
                   "No description has been provided for this product."}
               </p>
             </div>
-
-            {/* Highlights */}
 
             <div>
               <h3 className="font-black text-slate-900">
@@ -695,7 +991,8 @@ export default function ProductDetails() {
                   </span>
 
                   <span className="w-1/2 px-4 py-3 text-sm font-semibold text-slate-800">
-                    {product.category || "General"}
+                    {product.category ||
+                      "General"}
                   </span>
                 </div>
 
@@ -705,7 +1002,10 @@ export default function ProductDetails() {
                   </span>
 
                   <span className="w-1/2 px-4 py-3 text-sm font-semibold text-slate-800">
-                    {isOutOfStock
+                    {hasVariants &&
+                    !selectedVariant
+                      ? "Select Options"
+                      : isOutOfStock
                       ? "Out of Stock"
                       : "In Stock"}
                   </span>
@@ -774,40 +1074,44 @@ export default function ProductDetails() {
                   ["3", "Good"],
                   ["2", "Average"],
                   ["1", "Poor"],
-                ].map(([stars, label]) => (
-                  <div
-                    key={stars}
-                    className="flex items-center gap-3"
-                  >
+                ].map(
+                  ([stars, label]) => (
+                    <div
+                      key={stars}
+                      className="flex items-center gap-3"
+                    >
 
-                    <span className="w-5 text-sm font-bold text-slate-600">
-                      {stars}★
-                    </span>
+                      <span className="w-5 text-sm font-bold text-slate-600">
+                        {stars}★
+                      </span>
 
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full bg-[#174c3c]"
-                        style={{
-                          width:
-                            stars === "5"
-                              ? "75%"
-                              : stars === "4"
-                              ? "55%"
-                              : stars === "3"
-                              ? "30%"
-                              : stars === "2"
-                              ? "15%"
-                              : "8%",
-                        }}
-                      />
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+
+                        <div
+                          className="h-full rounded-full bg-[#174c3c]"
+                          style={{
+                            width:
+                              stars === "5"
+                                ? "75%"
+                                : stars === "4"
+                                ? "55%"
+                                : stars === "3"
+                                ? "30%"
+                                : stars === "2"
+                                ? "15%"
+                                : "8%",
+                          }}
+                        />
+
+                      </div>
+
+                      <span className="w-20 text-xs text-slate-500">
+                        {label}
+                      </span>
+
                     </div>
-
-                    <span className="w-20 text-xs text-slate-500">
-                      {label}
-                    </span>
-
-                  </div>
-                ))}
+                  )
+                )}
 
               </div>
 
@@ -840,9 +1144,11 @@ export default function ProductDetails() {
 
           <div className="rounded-xl bg-white p-5 shadow-sm">
             <div className="text-2xl">🚚</div>
+
             <h3 className="mt-3 font-black text-slate-900">
               Fast Delivery
             </h3>
+
             <p className="mt-1 text-sm text-slate-500">
               Reliable doorstep delivery
             </p>
@@ -850,9 +1156,11 @@ export default function ProductDetails() {
 
           <div className="rounded-xl bg-white p-5 shadow-sm">
             <div className="text-2xl">🔒</div>
+
             <h3 className="mt-3 font-black text-slate-900">
               Secure Payment
             </h3>
+
             <p className="mt-1 text-sm text-slate-500">
               Safe and secure checkout
             </p>
@@ -860,15 +1168,18 @@ export default function ProductDetails() {
 
           <div className="rounded-xl bg-white p-5 shadow-sm">
             <div className="text-2xl">↩️</div>
+
             <h3 className="mt-3 font-black text-slate-900">
               Easy Returns
             </h3>
+
             <p className="mt-1 text-sm text-slate-500">
               Hassle-free shopping experience
             </p>
           </div>
 
         </div>
+
       </section>
 
     </main>

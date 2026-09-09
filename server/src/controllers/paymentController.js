@@ -6,7 +6,7 @@ import stripe from "../utils/stripe.js";
 import {
   validateCart,
   validateBuyNowItem,
-  createOrderFromCart,
+  createOrdersFromCart,
   createOrderFromBuyNow,
 } from "../services/orderService.js";
 
@@ -38,12 +38,66 @@ export async function createStripeCheckout(req, res) {
         });
       }
 
-      if (product.stock < item.quantity) {
-        return res.status(400).json({
-          message:
-            `Insufficient stock for ${product.name}`,
-        });
+      /*
+      -------------------------------------------------------
+      VARIANT-AWARE STRIPE VALIDATION
+      -------------------------------------------------------
+      */
+
+      let variant = null;
+
+      if (product.variants?.length > 0) {
+        if (!item.variantId) {
+          return res.status(400).json({
+            message:
+              `Please select a variant for ${product.name}`,
+          });
+        }
+
+        variant = product.variants.find(
+          (entry) =>
+            entry._id.toString() ===
+            item.variantId.toString()
+        );
+
+        if (!variant) {
+          return res.status(400).json({
+            message:
+              `Selected variant is no longer available for ${product.name}`,
+          });
+        }
+
+        if (
+          Number(variant.stock || 0) <
+          Number(item.quantity)
+        ) {
+          return res.status(400).json({
+            message:
+              `Insufficient stock for ${product.name} for the selected variant`,
+          });
+        }
+      } else {
+        if (item.variantId) {
+          return res.status(400).json({
+            message:
+              `Invalid variant selected for ${product.name}`,
+          });
+        }
+
+        if (
+          Number(product.stock || 0) <
+          Number(item.quantity)
+        ) {
+          return res.status(400).json({
+            message:
+              `Insufficient stock for ${product.name}`,
+          });
+        }
       }
+
+      const price = variant
+        ? Number(variant.price)
+        : Number(product.price);
 
       lineItems.push({
         price_data: {
@@ -51,15 +105,18 @@ export async function createStripeCheckout(req, res) {
 
           product_data: {
             name: product.name,
+
             description:
-              product.description || undefined,
+              product.description ||
+              undefined,
           },
 
           unit_amount:
-            Math.round(product.price * 100),
+            Math.round(price * 100),
         },
 
-        quantity: item.quantity,
+        quantity:
+          Number(item.quantity),
       });
     }
 
@@ -67,9 +124,11 @@ export async function createStripeCheckout(req, res) {
       await stripe.checkout.sessions.create({
         mode: "payment",
 
-        line_items: lineItems,
+        line_items:
+          lineItems,
 
-        customer_email: req.user.email,
+        customer_email:
+          req.user.email,
 
         phone_number_collection: {
           enabled: true,
@@ -92,8 +151,11 @@ export async function createStripeCheckout(req, res) {
       });
 
     res.json({
-      sessionId: session.id,
-      url: session.url,
+      sessionId:
+        session.id,
+
+      url:
+        session.url,
     });
   } catch (error) {
     console.error(
@@ -118,7 +180,8 @@ async function createOrderFromStripeSession(
 ) {
   const existingOrder =
     await Order.findOne({
-      stripeSessionId: session.id,
+      stripeSessionId:
+        session.id,
     });
 
   if (existingOrder) {
@@ -176,27 +239,31 @@ async function createOrderFromStripeSession(
 
   /*
   ---------------------------------------------------------
-  Create order using central order service
+  Create order using central order service.
+
+  The service now supports multiple stores and
+  creates one order per store.
   ---------------------------------------------------------
   */
 
-  const order =
-    await createOrderFromCart({
+  const result =
+    await createOrdersFromCart({
       customerId,
 
       shippingAddress,
 
-      paymentStatus: "PAID",
+      paymentStatus:
+        "PAID",
 
       stripeSessionId:
         session.id,
     });
 
   console.log(
-    `Stripe order created: ${order._id}`
+    `Stripe orders created: ${result.orders.length}`
   );
 
-  return order;
+  return result;
 }
 
 
@@ -311,28 +378,34 @@ export async function createRazorpayOrder(
     /*
     ---------------------------------------------------------
     Checkout modes:
-    
+
     CART
-      → validate current cart
+      → validate the entire cart
+      → multiple stores are allowed
+      → one combined Razorpay payment
 
     BUY_NOW
-      → validate selected product directly
+      → validate one selected product
+      → one Razorpay payment
     ---------------------------------------------------------
     */
 
     const {
       checkoutType = "CART",
       productId,
+      variantId = null,
       quantity,
     } = req.body;
 
     let total;
 
-    if (checkoutType === "BUY_NOW") {
+    if (
+      checkoutType ===
+      "BUY_NOW"
+    ) {
       /*
       -------------------------------------------------------
       Validate Buy Now product on the server.
-      Never trust price/product data from frontend.
       -------------------------------------------------------
       */
 
@@ -340,14 +413,22 @@ export async function createRazorpayOrder(
         await validateBuyNowItem(
           req.user._id,
           productId,
-          quantity
+          quantity,
+          variantId
         );
 
-      total = buyNowData.total;
+      total =
+        buyNowData.total;
     } else {
       /*
       -------------------------------------------------------
-      Existing cart checkout
+      Validate complete cart.
+
+      The cart can contain products from
+      multiple stores.
+
+      validateCart() returns one combined
+      server-side total.
       -------------------------------------------------------
       */
 
@@ -356,48 +437,60 @@ export async function createRazorpayOrder(
           req.user._id
         );
 
-      total = cartData.total;
+      total =
+        cartData.total;
     }
 
     /*
     ---------------------------------------------------------
-    Create Razorpay payment order
+    Create ONE Razorpay payment order.
+
+    Example:
+
+    Store A = ₹200
+    Store B = ₹228
+
+    Razorpay amount = ₹428
     ---------------------------------------------------------
     */
 
     const razorpayOrder =
       await razorpay.orders.create({
         amount:
-          Math.round(total * 100),
+          Math.round(
+            total * 100
+          ),
 
-        currency: "INR",
+        currency:
+          "INR",
 
         receipt:
           `receipt_${Date.now()}`,
 
-        /*
-        -----------------------------------------------------
-        Store checkout information inside Razorpay order.
-
-        This lets the verification step determine whether
-        this payment belongs to CART or BUY NOW without
-        trusting the browser after payment.
-        -----------------------------------------------------
-        */
-
         notes: {
           checkoutType:
-            checkoutType === "BUY_NOW"
+            checkoutType ===
+            "BUY_NOW"
               ? "BUY_NOW"
               : "CART",
 
-          ...(checkoutType === "BUY_NOW"
+          ...(checkoutType ===
+          "BUY_NOW"
             ? {
                 productId:
                   productId.toString(),
 
+                ...(variantId
+                  ? {
+                      variantId:
+                        variantId.toString(),
+                    }
+                  : {}),
+
                 quantity:
-                  Number(quantity).toString(),
+                  Number(
+                    quantity
+                  ).toString(),
               }
             : {}),
         },
@@ -518,19 +611,21 @@ export async function verifyRazorpayPayment(
     ---------------------------------------------------------
     */
 
-    const existingOrder =
-      await Order.findOne({
+    const existingOrders =
+      await Order.find({
         razorpayPaymentId:
           razorpay_payment_id,
       });
 
-    if (existingOrder) {
+    if (
+      existingOrders.length
+    ) {
       return res.json({
         message:
           "Payment already verified",
 
-        order:
-          existingOrder,
+        orders:
+          existingOrders,
       });
     }
 
@@ -572,17 +667,11 @@ export async function verifyRazorpayPayment(
     ---------------------------------------------------------
     7. DETERMINE CHECKOUT TYPE
     ---------------------------------------------------------
-
-    We read this from the Razorpay order notes created
-    by our server.
-
-    This prevents the browser from changing CART into
-    BUY_NOW or vice versa during verification.
-    ---------------------------------------------------------
     */
 
     const checkoutType =
-      razorpayOrder.notes?.checkoutType ||
+      razorpayOrder.notes
+        ?.checkoutType ||
       "CART";
 
     /*
@@ -593,44 +682,69 @@ export async function verifyRazorpayPayment(
 
     let expectedAmount;
 
-    if (checkoutType === "BUY_NOW") {
+    if (
+      checkoutType ===
+      "BUY_NOW"
+    ) {
+      /*
+      -------------------------------------------------------
+      BUY NOW
+      -------------------------------------------------------
+      */
+
       const productId =
-        razorpayOrder.notes?.productId;
+        razorpayOrder.notes
+          ?.productId;
+
+      const variantId =
+        razorpayOrder.notes
+          ?.variantId ||
+        null;
 
       const quantity =
         Number(
-          razorpayOrder.notes?.quantity
+          razorpayOrder.notes
+            ?.quantity
         );
 
-      if (!productId || !quantity) {
+      if (
+        !productId ||
+        !quantity
+      ) {
         return res.status(400).json({
           message:
             "Razorpay Buy Now order information is incomplete.",
         });
       }
 
-      /*
-      -------------------------------------------------------
-      Re-fetch the actual product and calculate its current
-      server-side total.
-      -------------------------------------------------------
-      */
-
       const buyNowData =
         await validateBuyNowItem(
           req.user._id,
           productId,
-          quantity
+          quantity,
+          variantId
         );
 
       expectedAmount =
         Math.round(
-          buyNowData.total * 100
+          buyNowData.total *
+          100
         );
     } else {
       /*
       -------------------------------------------------------
-      Existing cart checkout
+      CART
+
+      IMPORTANT:
+
+      validateCart() now allows multiple stores
+      and calculates one combined total.
+
+      Example:
+
+      Store A → ₹200
+      Store B → ₹228
+      Total    → ₹428
       -------------------------------------------------------
       */
 
@@ -641,13 +755,22 @@ export async function verifyRazorpayPayment(
 
       expectedAmount =
         Math.round(
-          cartData.total * 100
+          cartData.total *
+          100
         );
     }
 
+    /*
+    ---------------------------------------------------------
+    Compare Razorpay's actual server-side amount
+    with our freshly calculated amount.
+    ---------------------------------------------------------
+    */
+
     if (
-      Number(razorpayOrder.amount) !==
-      expectedAmount
+      Number(
+        razorpayOrder.amount
+      ) !== expectedAmount
     ) {
       return res.status(400).json({
         message:
@@ -657,27 +780,43 @@ export async function verifyRazorpayPayment(
 
     /*
     ---------------------------------------------------------
-    9. CREATE PAID ORDER
+    9. CREATE PAID ORDER(S)
     ---------------------------------------------------------
     */
 
-    let order;
+    if (
+      checkoutType ===
+      "BUY_NOW"
+    ) {
+      /*
+      -------------------------------------------------------
+      BUY NOW → ONE ORDER
+      -------------------------------------------------------
+      */
 
-    if (checkoutType === "BUY_NOW") {
       const productId =
-        razorpayOrder.notes?.productId;
+        razorpayOrder.notes
+          ?.productId;
+
+      const variantId =
+        razorpayOrder.notes
+          ?.variantId ||
+        null;
 
       const quantity =
         Number(
-          razorpayOrder.notes?.quantity
+          razorpayOrder.notes
+            ?.quantity
         );
 
-      order =
+      const order =
         await createOrderFromBuyNow({
           customerId:
             req.user._id,
 
           productId,
+
+          variantId,
 
           quantity,
 
@@ -692,30 +831,57 @@ export async function verifyRazorpayPayment(
           razorpayPaymentId:
             razorpay_payment_id,
         });
-    } else {
+
       /*
       -------------------------------------------------------
-      Existing cart order creation
+      SUCCESS
       -------------------------------------------------------
       */
 
-      order =
-        await createOrderFromCart({
-          customerId:
-            req.user._id,
+      return res.json({
+        message:
+          "Payment verified and order created successfully",
 
-          shippingAddress,
+        order,
 
-          paymentStatus:
-            "PAID",
-
-          razorpayOrderId:
-            razorpay_order_id,
-
-          razorpayPaymentId:
-            razorpay_payment_id,
-        });
+        orders: [
+          order,
+        ],
+      });
     }
+
+    /*
+    ---------------------------------------------------------
+    CART → MULTIPLE ORDERS WHEN REQUIRED
+    ---------------------------------------------------------
+
+    Example:
+
+    Store A → Order A
+    Store B → Order B
+
+    Both orders share:
+      razorpayOrderId
+      razorpayPaymentId
+    ---------------------------------------------------------
+    */
+
+    const result =
+      await createOrdersFromCart({
+        customerId:
+          req.user._id,
+
+        shippingAddress,
+
+        paymentStatus:
+          "PAID",
+
+        razorpayOrderId:
+          razorpay_order_id,
+
+        razorpayPaymentId:
+          razorpay_payment_id,
+      });
 
     /*
     ---------------------------------------------------------
@@ -725,9 +891,22 @@ export async function verifyRazorpayPayment(
 
     res.json({
       message:
-        "Payment verified and order created successfully",
+        "Payment verified and orders created successfully",
 
-      order,
+      orders:
+        result.orders,
+
+      total:
+        result.total,
+
+      /*
+      Keep a singular order field for
+      frontend compatibility where needed.
+      */
+
+      order:
+        result.orders[0] ||
+        null,
     });
   } catch (error) {
     console.error(
