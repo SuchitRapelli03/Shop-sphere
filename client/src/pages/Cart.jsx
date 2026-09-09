@@ -7,9 +7,9 @@ import { setCart } from "../redux/slices/cartSlice.js";
 export default function Cart() {
   const [cart, setLocal] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [updatingProductId, setUpdatingProductId] =
+  const [updatingItemId, setUpdatingItemId] =
     useState(null);
-  const [removingProductId, setRemovingProductId] =
+  const [removingItemId, setRemovingItemId] =
     useState(null);
   const [error, setError] = useState("");
 
@@ -59,20 +59,86 @@ export default function Cart() {
   }, [user, dispatch]);
 
   /* =========================================================
+     VARIANT HELPERS
+  ========================================================= */
+
+  function getItemVariant(item) {
+    const product = item?.productId;
+
+    if (
+      !product ||
+      !item?.variantId ||
+      !Array.isArray(product.variants)
+    ) {
+      return null;
+    }
+
+    return (
+      product.variants.find(
+        (variant) =>
+          String(variant._id) ===
+          String(item.variantId)
+      ) || null
+    );
+  }
+
+  function getItemPrice(item) {
+    const product = item?.productId;
+    const variant = getItemVariant(item);
+
+    return Number(
+      variant?.price ??
+        product?.price ??
+        0
+    );
+  }
+
+  function getItemStock(item) {
+    const product = item?.productId;
+    const variant = getItemVariant(item);
+
+    return Number(
+      variant?.stock ??
+        product?.stock ??
+        0
+    );
+  }
+
+  function getVariantOptions(item) {
+    const variant = getItemVariant(item);
+
+    if (!variant?.options) {
+      return [];
+    }
+
+    return Object.entries(
+      variant.options
+    );
+  }
+
+  /* =========================================================
      UPDATE QUANTITY
   ========================================================= */
 
-  async function updateQuantity(productId, quantity) {
-    if (!productId) return;
+  async function updateQuantity(
+    productId,
+    variantId,
+    quantity,
+    itemId
+  ) {
+    if (!productId || !itemId) {
+      return;
+    }
 
     try {
-      setUpdatingProductId(productId);
+      setUpdatingItemId(itemId);
       setError("");
 
       const response = await api.put(
         `/cart/items/${productId}`,
         {
           quantity,
+          variantId: variantId || null,
         }
       );
 
@@ -97,17 +163,21 @@ export default function Cart() {
           "Unable to update cart quantity."
       );
     } finally {
-      setUpdatingProductId(null);
+      setUpdatingItemId(null);
     }
   }
 
   function increaseQuantity(item) {
-    const product = item.productId;
+    const product = item?.productId;
 
-    if (!product) return;
+    if (!product) {
+      return;
+    }
 
-    const currentQuantity = item.quantity;
-    const stock = Number(product.stock || 0);
+    const currentQuantity =
+      Number(item.quantity || 0);
+
+    const stock = getItemStock(item);
 
     if (currentQuantity >= stock) {
       setError(
@@ -121,16 +191,21 @@ export default function Cart() {
 
     updateQuantity(
       product._id,
-      currentQuantity + 1
+      item.variantId || null,
+      currentQuantity + 1,
+      item._id
     );
   }
 
   function decreaseQuantity(item) {
-    const product = item.productId;
+    const product = item?.productId;
 
-    if (!product) return;
+    if (!product) {
+      return;
+    }
 
-    const currentQuantity = item.quantity;
+    const currentQuantity =
+      Number(item.quantity || 0);
 
     if (currentQuantity <= 1) {
       return;
@@ -138,7 +213,9 @@ export default function Cart() {
 
     updateQuantity(
       product._id,
-      currentQuantity - 1
+      item.variantId || null,
+      currentQuantity - 1,
+      item._id
     );
   }
 
@@ -146,7 +223,13 @@ export default function Cart() {
      REMOVE ITEM
   ========================================================= */
 
-  async function removeItem(productId) {
+  async function removeItem(item) {
+    const product = item?.productId;
+
+    if (!product) {
+      return;
+    }
+
     const confirmed = window.confirm(
       "Are you sure you want to remove this product from your cart?"
     );
@@ -156,11 +239,17 @@ export default function Cart() {
     }
 
     try {
-      setRemovingProductId(productId);
+      setRemovingItemId(item._id);
       setError("");
 
       const response = await api.delete(
-        `/cart/items/${productId}`
+        `/cart/items/${product._id}`,
+        {
+          data: {
+            variantId:
+              item.variantId || null,
+          },
+        }
       );
 
       const updatedCart =
@@ -184,7 +273,7 @@ export default function Cart() {
           "Unable to remove product from cart."
       );
     } finally {
-      setRemovingProductId(null);
+      setRemovingItemId(null);
     }
   }
 
@@ -232,18 +321,22 @@ export default function Cart() {
         <div className="mx-auto max-w-4xl">
 
           <div className="animate-pulse">
+
             <div className="h-10 w-48 rounded bg-[#ded5ca]" />
 
             <div className="mt-8 space-y-4">
+
               {[1, 2].map((item) => (
                 <div
                   key={item}
                   className="h-32 rounded-2xl bg-[#eee9e0]"
                 />
               ))}
+
             </div>
 
           </div>
+
         </div>
       </main>
     );
@@ -289,10 +382,8 @@ export default function Cart() {
   const total = items.reduce(
     (sum, item) =>
       sum +
-      Number(
-        item.productId?.price || 0
-      ) *
-        item.quantity,
+      getItemPrice(item) *
+        Number(item.quantity || 0),
     0
   );
 
@@ -385,6 +476,7 @@ export default function Cart() {
               <div className="flex items-end justify-between">
 
                 <div>
+
                   <p className="text-xs font-black uppercase tracking-[0.18em] text-[#6a9aa2]">
                     Shopping Bag
                   </p>
@@ -392,6 +484,7 @@ export default function Cart() {
                   <h2 className="mt-1 text-2xl font-black">
                     Cart Items
                   </h2>
+
                 </div>
 
                 <span className="text-sm font-bold text-[#81766d]">
@@ -414,34 +507,39 @@ export default function Cart() {
                   const product =
                     item.productId;
 
+                  if (!product) {
+                    return null;
+                  }
+
                   const productId =
-                    product?._id;
+                    product._id;
 
                   const price =
-                    Number(
-                      product?.price || 0
-                    );
+                    getItemPrice(item);
 
                   const itemTotal =
                     price *
-                    item.quantity;
-
-                  const stock =
                     Number(
-                      product?.stock || 0
+                      item.quantity || 0
                     );
 
+                  const stock =
+                    getItemStock(item);
+
+                  const variantOptions =
+                    getVariantOptions(item);
+
                   const updating =
-                    updatingProductId ===
-                    productId;
+                    updatingItemId ===
+                    item._id;
 
                   const removing =
-                    removingProductId ===
-                    productId;
+                    removingItemId ===
+                    item._id;
 
                   return (
                     <article
-                      key={productId}
+                      key={item._id}
                       className="rounded-2xl border border-[#ded5ca] bg-white p-4 shadow-sm sm:p-5"
                     >
 
@@ -466,9 +564,11 @@ export default function Cart() {
                             />
 
                           ) : (
+
                             <span className="text-4xl">
                               📦
                             </span>
+
                           )}
 
                         </div>
@@ -486,7 +586,28 @@ export default function Cart() {
                                   "Product"}
                               </h3>
 
-                              <p className="mt-1 text-sm text-[#81766d]">
+                              {/* VARIANT OPTIONS */}
+
+                              {variantOptions.length >
+                                0 && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+
+                                  {variantOptions.map(
+                                    ([name, value]) => (
+                                      <span
+                                        key={`${item._id}-${name}`}
+                                        className="rounded-lg border border-[#c7dfe2] bg-[#e5f1f3] px-2.5 py-1 text-xs font-bold text-[#365f66]"
+                                      >
+                                        {name}:{" "}
+                                        {value}
+                                      </span>
+                                    )
+                                  )}
+
+                                </div>
+                              )}
+
+                              <p className="mt-2 text-sm text-[#81766d]">
                                 ₹
                                 {price.toLocaleString(
                                   "en-IN"
@@ -574,7 +695,7 @@ export default function Cart() {
                               type="button"
                               onClick={() =>
                                 removeItem(
-                                  productId
+                                  item
                                 )
                               }
                               disabled={
@@ -639,18 +760,25 @@ export default function Cart() {
                   const product =
                     item.productId;
 
+                  if (!product) {
+                    return null;
+                  }
+
                   const price =
-                    Number(
-                      product?.price || 0
-                    );
+                    getItemPrice(item);
 
                   const itemTotal =
                     price *
-                    item.quantity;
+                    Number(
+                      item.quantity || 0
+                    );
+
+                  const variantOptions =
+                    getVariantOptions(item);
 
                   return (
                     <div
-                      key={product?._id}
+                      key={item._id}
                       className="flex items-start justify-between gap-4"
                     >
 
@@ -660,6 +788,18 @@ export default function Cart() {
                           {product?.name ||
                             "Product"}
                         </p>
+
+                        {variantOptions.length >
+                          0 && (
+                          <p className="mt-1 text-xs text-[#55777d]">
+                            {variantOptions
+                              .map(
+                                ([name, value]) =>
+                                  `${name}: ${value}`
+                              )
+                              .join(" • ")}
+                          </p>
+                        )}
 
                         <p className="mt-1 text-xs text-[#81766d]">
                           ₹
