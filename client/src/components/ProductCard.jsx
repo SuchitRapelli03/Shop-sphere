@@ -41,9 +41,11 @@ export default function ProductCard({ product }) {
     navigate(`/product/${product._id}`);
   }
 
-  const image =
-    product.images?.[0] ||
+  const fallbackImage =
     "https://placehold.co/600x400?text=Product";
+
+  const image =
+    product.images?.[0] || fallbackImage;
 
   const stock =
     product.stock ??
@@ -74,6 +76,11 @@ export default function ProductCard({ product }) {
     );
   }
 
+  function handleImageError(e) {
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = fallbackImage;
+  }
+
   return (
     <article
       onClick={openProduct}
@@ -85,6 +92,7 @@ export default function ProductCard({ product }) {
         <img
           src={image}
           alt={product.name || "Product"}
+          onError={handleImageError}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
 
