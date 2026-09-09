@@ -1,140 +1,613 @@
-# ShopSphere — Multi-Tenant SaaS E-Commerce Platform
+# 🛒 ShopSphere
 
-Enterprise-grade, secure, multi-tenant e-commerce platform built with **React.js, Redux Toolkit, Tailwind CSS, Node.js, Express.js, MongoDB, JWT, Stripe, and Cloudinary**.
+## Multi-Tenant E-Commerce SaaS Platform
 
----
+ShopSphere is a full-stack **Multi-Tenant E-Commerce SaaS Platform** that enables multiple independent vendors to create and manage their own digital storefronts within a single unified marketplace.
 
-## 🌟 Key Architecture & Features
-
-### 1. Multi-Tenant Isolation
-- **Tenant Separation**: Products, inventory, storefront branding, and order fulfillment are strictly scoped to the authenticated vendor's tenant ID (`storeId` / `vendorId`).
-- **Storefront Directory**: Customers can browse by individual vendor store profiles or search across the entire marketplace.
-
-### 2. Role-Based Access Control (RBAC)
-- **Super Admin (`super_admin`)**: Global marketplace administration, platform statistics, user management, and the **Vendor Approval Workflow Queue**.
-- **Vendor (`vendor`)**: Tenant dashboard, store branding configuration, product CRUD with Cloudinary image upload, stock management, and tenant-specific order tracking.
-- **Customer (`customer`)**: Marketplace browsing, cart management, checkout with Stripe integration, and order tracking.
-
-### 3. Vendor Self-Registration (Requirement 6)
-- **Self-Registration Portal (`/vendor/register`)**: Vendors register with full business details, store name, phone, address, and password.
-- **Pending Moderation Queue**: New vendors are automatically assigned `status: "pending"` and barred from merchant privileges until approved by Super Admin.
-- **Super Admin Review**: Admins review pending vendor applications in real-time, with one-click **Approve** or **Reject** (with feedback reason) actions.
+The platform provides separate experiences for **Customers, Vendors, and Super Administrators**, with secure role-based access control, tenant-aware data management, product variants, cart and order management, online payments, media uploads, email notifications, and analytics dashboards.
 
 ---
 
-## 🚀 Production Deployment Guide
+## ✨ Features
 
-### A. Backend Deployment (Render)
+### 👤 Authentication & Authorization
 
-1. **Create Web Service on Render**:
-   - Connect your GitHub repository.
-   - Set **Root Directory**: `backend`
-   - **Environment**: `Node`
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Health Check Path**: `/api/health`
-
-2. **Configure Environment Variables in Render Dashboard**:
-   ```env
-   NODE_ENV=production
-   PORT=5000
-   MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/shopsphere?retryWrites=true&w=majority
-   JWT_SECRET=your_production_secure_jwt_secret_key_32_chars
-   JWT_EXPIRE=7d
-   CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-   CLOUDINARY_API_KEY=your_cloudinary_api_key
-   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
-   STRIPE_SECRET_KEY=sk_live_your_stripe_secret_key
-   STRIPE_WEBHOOK_SECRET=whsec_your_stripe_webhook_secret
-   SMTP_HOST=smtp.mailgun.org
-   SMTP_PORT=587
-   SMTP_USER=your_smtp_user
-   SMTP_PASSWORD=your_smtp_password
-   FRONTEND_URL=https://shopsphere-app.vercel.app
-   ```
-
-3. **Verify Health Endpoint**:
-   - URL: `https://<your-render-service>.onrender.com/api/health`
-   - Expected Response: `{"success": true, "message": "ShopSphere API is running"}`
+- Secure user registration and login
+- JWT-based authentication
+- Password hashing using Bcrypt
+- Role-Based Access Control (RBAC)
+- Three user roles:
+  - Customer
+  - Vendor
+  - Super Admin
+- Protected API routes
+- Secure authorization middleware
 
 ---
 
-### B. Frontend Deployment (Vercel)
+### 🏪 Multi-Tenant Store Management
 
-1. **Deploy to Vercel**:
-   - Import the GitHub repository in Vercel.
-   - Set **Root Directory**: `frontend`
-   - **Framework Preset**: `Vite`
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
-
-2. **Configure Environment Variables in Vercel**:
-   ```env
-   VITE_API_URL=https://<your-render-service>.onrender.com/api
-   ```
-
-3. **SPA Routing**:
-   - `frontend/vercel.json` is preconfigured with client-side routing rewrites for all single-page application routes.
+- Vendors can create and manage their own stores
+- Store ownership validation
+- Tenant-aware product management
+- Vendors cannot access or modify another vendor's stores
+- Store activation and suspension controls
+- Public store browsing
 
 ---
 
-## 🔑 Demo & Test Accounts
+### 📦 Product & Inventory Management
 
-Run the database seed script to populate test accounts:
-```bash
-cd backend
-npm run dev # or: node seed.js
+- Create, update, and delete products
+- Product categories and search
+- Price filtering
+- Pagination support
+- Active/inactive product management
+- Store ownership validation
+- Product stock management
+
+#### Product Variants
+
+ShopSphere supports products with multiple variants.
+
+Examples include:
+
+- Size
+- Color
+- Storage
+- Other product-specific options
+
+The system supports:
+
+- Variant-specific pricing
+- Variant-specific stock
+- Duplicate variant combination validation
+- Variant selection in the cart
+- Separate cart items for different variants
+- Variant stock restoration after order cancellation
+
+---
+
+### 🛍️ Customer Shopping Experience
+
+Customers can:
+
+- Browse active stores
+- Browse products
+- Search products
+- Filter products by category and price
+- View product details
+- Add products to their cart
+- Select product variants
+- Update cart quantities
+- Remove cart items
+- Checkout and place orders
+- View their order history
+- Cancel eligible orders
+
+---
+
+### 🛒 Cart Management
+
+- Persistent customer carts
+- Add simple products
+- Add variant products
+- Quantity validation
+- Stock validation
+- Automatic merging of identical cart items
+- Separate cart items for different variants
+- Cart item updates
+- Cart item removal
+
+Cart access is restricted to customers.
+
+---
+
+### 📦 Order Management
+
+The order system supports:
+
+- Order creation from cart items
+- Shipping address validation
+- Customer order history
+- Vendor order management
+- Order status updates
+- Customer order cancellation
+- Stock restoration after cancellation
+- Variant stock restoration after cancellation
+
+Supported order workflow includes statuses such as:
+
+- Placed
+- Processing
+- Shipped
+- Delivered
+- Cancelled
+
+---
+
+### 💳 Payment Integration
+
+ShopSphere includes payment processing functionality for secure online transactions.
+
+The payment workflow includes:
+
+- Payment order/session creation
+- Payment verification
+- Secure server-side validation
+- Order creation after successful payment
+- Payment error handling
+
+---
+
+### 🖼️ Media Uploads
+
+- Cloud-based image storage
+- Cloudinary integration
+- Product image uploads
+- Secure upload handling
+
+---
+
+### 📧 Email Notifications
+
+Nodemailer is used for transactional email functionality.
+
+The platform supports email notifications for important events such as:
+
+- Order confirmation
+- Transaction-related communication
+
+---
+
+### 📊 Analytics Dashboards
+
+ShopSphere provides analytics for platform management.
+
+#### Vendor Analytics
+
+Vendors can monitor:
+
+- Revenue
+- Orders
+- Product performance
+- Store activity
+
+#### Super Admin Analytics
+
+Administrators can monitor:
+
+- Users
+- Vendors
+- Stores
+- Orders
+- Platform-level activity
+
+Interactive charts and visualizations are implemented using modern React charting tools.
+
+---
+
+## 👥 User Roles
+
+### 🛍️ Customer
+
+Customers can:
+
+- Browse stores and products
+- Search and filter products
+- Manage their cart
+- Place orders
+- Make payments
+- View order history
+- Cancel eligible orders
+
+---
+
+### 🏪 Vendor
+
+Vendors can:
+
+- Create and manage stores
+- Manage products
+- Manage product variants
+- Control inventory
+- View and manage orders
+- Update order statuses
+- Access vendor analytics
+
+Vendors are isolated from other vendors' data.
+
+---
+
+### 🛡️ Super Admin
+
+Super Admins can:
+
+- Manage users
+- Manage vendors
+- Manage stores
+- Monitor orders
+- Suspend or activate vendors
+- Suspend or activate stores
+- Access platform analytics
+- Maintain administrative oversight of the marketplace
+
+---
+
+# 🧱 Tech Stack
+
+## Frontend
+
+- React.js
+- Redux Toolkit
+- React Router DOM
+- Tailwind CSS
+- Vite
+- Recharts
+
+## Backend
+
+- Node.js
+- Express.js
+
+## Database
+
+- MongoDB
+- Mongoose
+
+## Authentication & Security
+
+- JSON Web Tokens (JWT)
+- Bcrypt.js
+- Helmet
+- CORS
+
+## Third-Party Integrations
+
+- Payment Gateway Integration
+- Cloudinary
+- Nodemailer
+
+## Testing
+
+- Vitest
+- Supertest
+
+---
+
+# 🏗️ Project Architecture
+
+```text
+ShopSphere
+│
+├── client/                     # React Frontend
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── store/
+│   │   └── ...
+│   ├── index.html
+│   └── package.json
+│
+├── server/                     # Node.js Backend
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   └── utils/
+│   │
+│   ├── tests/
+│   │   ├── api.integration.test.js
+│   │   ├── auth.integration.test.js
+│   │   ├── orderService.test.js
+│   │   └── paymentController.test.js
+│   │
+│   └── package.json
+│
+└── README.md
 ```
 
-| Role | Email | Password | Permissions |
-| :--- | :--- | :--- | :--- |
-| **Super Admin** | `admin@shopsphere.com` | `AdminPass123!` | Full admin access, pending vendor approval queue, platform statistics |
-| **Active Vendor** | `vendor@shopsphere.com` | `VendorPass123!` | Active vendor dashboard, product management, store customization |
-| **Pending Vendor** | `pending.vendor@shopsphere.com` | `VendorPass123!` | Under review state, demonstrates pending approval UI guard |
-| **Customer** | `customer@shopsphere.com` | `CustomerPass123!` | Marketplace shopping, cart, checkout, order tracking |
+---
+
+# 🔐 Security Features
+
+ShopSphere implements several security practices:
+
+- JWT authentication
+- Password hashing using Bcrypt
+- Role-Based Access Control
+- Protected API routes
+- Tenant ownership validation
+- Helmet security middleware
+- CORS configuration
+- Environment variable protection
+- Server-side stock validation
+- Payment verification
+- Input validation and error handling
 
 ---
 
-## 📡 Core API Reference
+# 🧪 Testing
 
-### Health
-- `GET /api/health` — Public health check status
+The backend includes comprehensive automated testing for major platform functionality.
 
-### Authentication & Vendor Registration
-- `POST /api/auth/register` — Customer account creation
-- `POST /api/auth/vendor/register` — **Vendor Self-Registration** (Creates vendor in `pending` status & initial store record)
-- `POST /api/auth/login` — Universal login (Customer, Vendor, Admin)
-- `GET /api/auth/me` — Current user profile & linked store
+## Test Coverage
 
-### Super Admin (Requires `super_admin` role)
-- `GET /api/admin/vendors/pending` — List vendor applications awaiting review
-- `GET /api/admin/vendors` — List all registered vendors
-- `PATCH /api/admin/vendors/:id/approve` — Approve pending vendor & activate store
-- `PATCH /api/admin/vendors/:id/reject` — Reject vendor application with reason
-- `PATCH /api/admin/vendors/:id/status` — Activate / Deactivate vendor account
-- `GET /api/admin/stats` — Platform metrics & revenue analytics
+The automated test suite covers:
 
-### Vendor Hub (Requires active `vendor` role)
-- `GET /api/vendor/store` — Get own store settings
-- `PUT /api/vendor/store` — Update store details & branding
-- `GET /api/vendor/products` — Get tenant's products
-- `GET /api/vendor/orders` — Get tenant-specific customer orders
-- `GET /api/vendor/stats` — Get store revenue and stock metrics
+- Authentication
+- Authorization
+- Store APIs
+- Product APIs
+- Product variants
+- Cart functionality
+- Order creation
+- Order cancellation
+- Stock restoration
+- Variant stock restoration
+- Payment workflows
+- Vendor permissions
+- Customer permissions
+- Super Admin permissions
+- Global error handling
 
-### Products & Stores (Public & Vendor CRUD)
-- `GET /api/products` — Browse products with search, category, and price filters
-- `GET /api/products/:id` — Get product detail with vendor info
-- `POST /api/products` — Create new product (Vendor only)
-- `PUT /api/products/:id` — Update product (Vendor only)
-- `DELETE /api/products/:id` — Delete product (Vendor only)
-- `GET /api/stores` — Browse vendor store directory
-- `GET /api/stores/:idOrSlug` — Storefront page with products
+### Latest Test Result
 
-### Orders & Checkout
-- `POST /api/orders` — Create new order & initialize Stripe payment intent
-- `POST /api/orders/:id/pay` — Confirm payment and update product stock
-- `GET /api/orders/my-orders` — Customer order history
-- `GET /api/orders/:id` — Order details
+```text
+Test Files: 4 passed
+Tests: 147 passed
+```
 
-### Media Upload
-- `POST /api/upload` — Multipart Cloudinary image upload for products and store logos
+Run all tests:
+
+```bash
+cd server
+npm test
+```
+
+Run the API integration tests:
+
+```bash
+npm test -- --run tests/api.integration.test.js
+```
+
+---
+
+# ⚙️ Installation & Setup
+
+## Prerequisites
+
+Make sure you have:
+
+- Node.js 20+
+- MongoDB
+- npm
+
+You may also need credentials for configured third-party services such as:
+
+- Payment provider
+- Cloudinary
+- SMTP email service
+
+---
+
+## 🔧 Backend Setup
+
+Navigate to the server directory:
+
+```bash
+cd server
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create your environment file:
+
+### Windows
+
+```bash
+copy .env.example .env
+```
+
+### Linux/macOS
+
+```bash
+cp .env.example .env
+```
+
+Configure your environment variables.
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+---
+
+## 🎨 Frontend Setup
+
+Open another terminal and navigate to the client directory:
+
+```bash
+cd client
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create the environment file:
+
+### Windows
+
+```bash
+copy .env.example .env
+```
+
+Start the frontend:
+
+```bash
+npm run dev
+```
+
+---
+
+# 🔑 Environment Variables
+
+Never commit your `.env` files.
+
+Typical environment variables may include:
+
+```env
+MONGODB_URI=
+JWT_SECRET=
+
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+
+PAYMENT_GATEWAY_KEY_ID=
+PAYMENT_GATEWAY_KEY_SECRET=
+```
+
+The exact variables depend on your local configuration.
+
+---
+
+# 🚀 Core API Modules
+
+## Authentication
+
+```text
+POST   /api/auth/register
+POST   /api/auth/login
+GET    /api/auth/me
+```
+
+## Stores
+
+```text
+POST   /api/stores
+GET    /api/stores
+GET    /api/stores/:slug
+PUT    /api/stores/:id
+DELETE /api/stores/:id
+```
+
+## Products
+
+```text
+POST   /api/products
+GET    /api/products
+GET    /api/products/:id
+PUT    /api/products/:id
+DELETE /api/products/:id
+```
+
+## Cart
+
+```text
+GET    /api/cart
+POST   /api/cart/items
+PUT    /api/cart/items/:productId
+DELETE /api/cart/items/:productId
+```
+
+## Orders
+
+```text
+POST   /api/orders
+GET    /api/orders/my
+GET    /api/orders/vendor
+```
+
+---
+
+# 🎯 Multi-Tenant Data Isolation
+
+One of the core principles of ShopSphere is tenant isolation.
+
+Each vendor operates independently within the shared platform.
+
+The backend ensures that:
+
+- Vendors can only manage their own stores
+- Vendors can only manage products belonging to their stores
+- Vendors cannot modify another vendor's resources
+- Vendor orders are restricted to relevant products
+- Administrative controls remain exclusive to Super Admin users
+
+This approach allows multiple businesses to operate inside one centralized SaaS platform while maintaining logical data separation.
+
+---
+
+# 🌟 Key Highlights
+
+- Full-stack MERN application
+- Multi-tenant architecture
+- Three-level role system
+- Product variants
+- Inventory management
+- Cart and checkout workflow
+- Payment integration
+- Cloud-based image storage
+- Email notifications
+- Analytics dashboards
+- Automated testing
+- **147 automated tests passing**
+
+---
+
+# 🔮 Future Improvements
+
+Potential future enhancements include:
+
+- Product reviews and ratings
+- Wishlist functionality
+- Discount coupons
+- Advanced recommendation system
+- Real-time notifications
+- Multi-language support
+- Advanced vendor subscription plans
+- Improved analytics and reporting
+- Mobile application
+- AI-powered product recommendations
+
+---
+
+# 👨‍💻 Development
+
+ShopSphere was developed as a full-stack academic and practical project demonstrating modern web development concepts including:
+
+- SaaS architecture
+- Multi-tenancy
+- RESTful APIs
+- Role-Based Access Control
+- Authentication and authorization
+- Database modeling
+- State management
+- Payment workflows
+- Automated testing
+- Dashboard development
+
+---
+
+## 🛒 ShopSphere
+
+**Your Marketplace. Your Sphere.**
